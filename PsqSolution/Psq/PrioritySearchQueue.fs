@@ -10,7 +10,7 @@ module internal PSQ =
    // in relation to a tournament tree, hence the winner and loser nomenclature. Note that winnerKey and winnerValue
    // logically form a tuple/pair, but they are split out into discrete properties for effieciency.
    type Pennant<'K, 'V when 'V: comparison> = 
-      | Empty
+      | Void
       | Winner of winnerKey:'K * winnerValue: 'V * ltree:LoserTree<'K, 'V> * maxKey:'K
    
    and LoserTree<'K, 'V> =
@@ -18,7 +18,7 @@ module internal PSQ =
       | Loser of loserKey:'K * loserValue:'V * left:LoserTree<'K, 'V> * splitKey:'K * right:LoserTree<'K, 'V>
 
    // An empty pennant.
-   let empty : Pennant<'K, 'V> = Empty
+   let empty : Pennant<'K, 'V> = Void
 
    // Returns a pennant containing the specified key and value.
    let inline singleton key value = 
@@ -30,15 +30,15 @@ module internal PSQ =
 
    // Returns the key of the binding with the maximum value in the pennant.  This is O(1).
    let maxKey = function
-      | Empty -> invalidOp "empty pennant"
+      | Void -> invalidOp "empty pennant"
       | Winner( _, _, _, max) -> max
 
    // Merges two pennants and returns a new pennant, such that keys in the first tree are strictly smaller than keys 
    // in the second tree. This is O(1).
    let private merge pennant1 pennant2 = 
       match pennant1, pennant2 with
-      | Empty, _ -> pennant2
-      | _, Empty -> pennant1
+      | Void, _ -> pennant2
+      | _, Void -> pennant1
       | Winner( key1, value1, ltree1, max1), Winner( key2, value2, ltree2, max2) ->
          if value1 < value2 then
             Winner( key1, value1, (Loser(key2, value2, ltree1, max1, ltree2)), max2)
@@ -63,15 +63,34 @@ module internal PSQ =
                f x1 x2, xs2
          fst (recurse (List.length items) items)
 
-            
+   // Returns a pennant containing values from the specified list, which *must* be sorted by key, in ascending order.
+   // This is O(N).
    let fromOrderedList (bindings: list<KeyValuePair<'K, 'V>>) : Pennant<'K, 'V> = 
       let asPennants = bindings |> List.map ofPair
       asPennants
       |> foldm( fun pennant singleton ->
          merge pennant singleton ) empty
 
+   // Active pattern for extracting the minumum value from the pennant.
+   // If the pennant is not empty, Min is returned and carries the key and value of the minimum entry in the pennant, 
+   // and an updated pennant with the minumum entry removed.  Otherwise Empty is returned.
+   let (|Empty|Min|) pennant = 
+      // Returns the second best entry from the tree, by effectively 'replaying' the tournament without the winner.
+      let rec secondBest loserTree key = 
+         match loserTree, key with
+         | Start, _ -> Void
+         | Loser(loserKey, loserValue, ltree, splitKey, rtree), m ->
+            if loserKey <= splitKey then
+               merge (Winner(loserKey, loserValue, ltree, splitKey)) (secondBest rtree m)
+            else 
+               merge (secondBest ltree splitKey) (Winner(loserKey, loserValue, rtree, m))
 
-   //let (|Empty|Min|) 
+      match pennant with
+      | Void -> Empty
+      | Winner(key, value, ltree, maxKey) -> Min( key, value, (secondBest ltree maxKey))
+
+      
+      
 
 
 //   
@@ -81,4 +100,4 @@ module internal PSQ =
  //      let k, v = list.Head   
 //      Pennant (k,v) 
 //
-//   let (|Empty|Min|) psq = 
+//   let (|Void|Min|) psq = 
