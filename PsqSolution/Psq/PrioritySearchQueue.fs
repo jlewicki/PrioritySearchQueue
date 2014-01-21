@@ -24,7 +24,7 @@ module internal PSQ =
    let inline singleton key value = 
       Winner( key, value, Start, key )
 
-   // Returns a pennant containing the specified binding.
+   // Returns a pennant containing the key and value of the specified pair.
    let inline ofPair (pair: KeyValuePair<'K, 'V>) = 
       singleton pair.Key pair.Value
 
@@ -33,8 +33,8 @@ module internal PSQ =
       | Empty -> invalidOp "empty pennant"
       | Winner( _, _, _, max) -> max
 
-   // Merges two pennants into a new pennant, such that keys in the first tree are strictly smaller than keys in the
-   // second tree. This is O(1).
+   // Merges two pennants and returns a new pennant, such that keys in the first tree are strictly smaller than keys 
+   // in the second tree. This is O(1).
    let private merge pennant1 pennant2 = 
       match pennant1, pennant2 with
       | Empty, _ -> pennant2
