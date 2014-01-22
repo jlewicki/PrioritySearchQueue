@@ -17,10 +17,10 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> =
     /// O(1). Returns true if this queue has no elements.
     member IsEmpty: bool
 
-    /// O(1). Returns the entry with the minimim priority in this queue. Throws an exception if the queue is empty.
+    /// O(1). Returns the entry with the minimum value in this queue. Throws an exception if the queue is empty.
     member Min: 'K*'V
 
-    /// O(1). Returns the entry with the minimim priority in this queue. Returns None if the queue is empty.
+    /// O(1). Returns the entry with the minimum value in this queue. Returns None if the queue is empty.
     member PeekMin: option<'K*'V>
 
 
@@ -39,10 +39,10 @@ module PrioritySearchQueue =
    /// ascending order.
    val ofOrderedSeq: items:seq<'K*'V> -> PrioritySearchQueue<'K, 'V>
 
-   /// O(1). Returns the entry with the minimim priority in the queue. Throws an exception if the queue is empty.
+   /// O(1). Returns the entry with the minimum value in the queue. Throws an exception if the queue is empty.
    val min: queue:PrioritySearchQueue<'K, 'V> -> 'K*'V
 
-   /// O(1). Returns the entry with the minimim priority in the queue. Returns None if the queue is empty.
+   /// O(1). Returns the entry with the minimum value in the queue. Returns None if the queue is empty.
    val peekMin: queue:PrioritySearchQueue<'K, 'V> -> option<'K*'V>
 
 
