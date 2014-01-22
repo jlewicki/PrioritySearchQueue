@@ -41,6 +41,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="PrioritySearchQueue.fsi" />
     <Compile Include="PrioritySearchQueue.fs" />
   </ItemGroup>
   <PropertyGroup>

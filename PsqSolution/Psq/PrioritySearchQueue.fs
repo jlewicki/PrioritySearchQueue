@@ -1,4 +1,6 @@
 ﻿namespace Psq
+open System
+open System.Collections
 open System.Collections.Generic
 
 
@@ -8,17 +10,21 @@ module internal PSQ =
 
    // The priority search queue is defined in terms of a semi-heap strucure called a pennant.  This pennant is described
    // in relation to a tournament tree, hence the winner and loser nomenclature. Note that winnerKey and winnerValue
-   // logically form a tuple/pair, but they are split out into discrete properties for effieciency.
+   // logically form a tuple/pair, but they are split out into discrete properties for efficiency.
    type Pennant<'K, 'V when 'V: comparison> = 
       | Void
-      | Winner of winnerKey:'K * winnerValue: 'V * ltree:LoserTree<'K, 'V> * maxKey:'K
-   
+      | Winner of winnerKey:'K * winnerValue: 'V * ltree:LoserTree<'K, 'V> * maxKey:'K   
    and LoserTree<'K, 'V> =
       | Start 
       | Loser of loserKey:'K * loserValue:'V * left:LoserTree<'K, 'V> * splitKey:'K * right:LoserTree<'K, 'V>
 
    // An empty pennant.
    let empty : Pennant<'K, 'V> = Void
+
+   // Returns a value indicating if the pennant is empty.  This is O(1).
+   let isEmpty = function 
+      | Void -> true
+      | _ -> false
 
    // Returns a pennant containing the specified key and value.
    let inline singleton key value = 
@@ -27,6 +33,11 @@ module internal PSQ =
    // Returns a pennant containing the key and value of the specified pair.
    let inline ofPair (pair: KeyValuePair<'K, 'V>) = 
       singleton pair.Key pair.Value
+
+   // Returns the minimum key and value in the pennant.  This is O(1).
+   let minBinding = function
+      | Void -> invalidOp "empty pennant"
+      | Winner( k, v, _, _) -> k, v
 
    // Returns the key of the binding with the maximum value in the pennant.  This is O(1).
    let maxKey = function
@@ -89,9 +100,74 @@ module internal PSQ =
       | Void -> Empty
       | Winner(key, value, ltree, maxKey) -> Min( key, value, (secondBest ltree maxKey))
 
+   
+   // Iterator class for a pennant
+   type PennantEnumerator<'K, 'V when 'K: comparison and 'V: comparison> ( pennant : Pennant<'K, 'V> ) =
+      let notStarted() = 
+         raise <| new InvalidOperationException("The enumerator has not been started by a call to MoveNext")
+      let alreadyCompleted() = 
+         raise <| new InvalidOperationException("The enumerator has already completed.")
+
+      let mutable currentPennant = pennant
+      let mutable isStarted = false
+
+      // Get the current item in the enumerator
+      let current() =
+         if isStarted then 
+            let k, v = minBinding currentPennant
+            new KeyValuePair<'K, 'V>(k, v)
+         else notStarted()
       
+      // Positions the enumerator at the next item in the collection
+      let moveNext() =
+         if isStarted then 
+            match currentPennant with 
+            | Empty -> alreadyCompleted()
+            | Min( _, _, rest) ->
+               currentPennant <- rest
+               not(currentPennant |> isEmpty)
+            
+         else
+             isStarted <- true;  // The first call to MoveNext "starts" the enumeration.
+             not (currentPennant |> isEmpty)
+ 
+      interface IEnumerator<KeyValuePair<'K, 'V>> with
+         member x.Current = current()
+      interface IEnumerator with 
+         member x.Current = box (current())
+         member x.MoveNext() = moveNext()
+         member x.Reset() = currentPennant <- pennant
+      interface IDisposable with 
+         member x.Dispose() = () 
+
       
 
+[<Sealed>]
+type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal( pennant: PSQ.Pennant<'K, 'V>, count: int ) = 
+
+   static let collectionIsReadOnly() = new NotSupportedException("The operation is not valid because the collection is read-only")
+   
+   static let empty = new PrioritySearchQueue<'K, 'V>( PSQ.empty, 0 )
+
+   member x.Length = count
+
+   member x.IsEmpty = count = 0
+
+   static member Empty : PrioritySearchQueue<'K, 'V> = empty
+
+   interface IEnumerable with
+      member x.GetEnumerator() = 
+         new PSQ.PennantEnumerator<'K, 'V>( pennant ) :> IEnumerator
+
+   interface IEnumerable<KeyValuePair<'K, 'V>> with
+      member x.GetEnumerator() = 
+         new PSQ.PennantEnumerator<'K, 'V>( pennant ) :> IEnumerator<KeyValuePair<'K, 'V>>
+
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module PrioritySearchQueue =
+   
+   let empty<'K, 'V when 'K: comparison and 'V: comparison> = PrioritySearchQueue<'K, 'V>.Empty
 
 //   
 //   let insert (k, v) = Pennant (k,v) 
