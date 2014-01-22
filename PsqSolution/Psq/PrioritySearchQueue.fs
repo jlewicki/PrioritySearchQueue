@@ -164,7 +164,7 @@ module internal PSQ =
          member x.Dispose() = () 
 
       
-
+// Documention in signature file
 [<Sealed>]
 type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal( pennant: PSQ.Pennant<'K, 'V>  ) = 
 
@@ -191,6 +191,7 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal
          new PSQ.PennantEnumerator<'K, 'V>( pennant ) :> IEnumerator<KeyValuePair<'K, 'V>>
 
 
+// Documention in signature file
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module PrioritySearchQueue =
    
@@ -208,4 +209,8 @@ module PrioritySearchQueue =
 
    let peekMin (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.PeekMin
+
+   let toSeq (queue:PrioritySearchQueue<'K, 'V>) = 
+      queue
+      |> Seq.map( fun pair -> pair.Key, pair.Value )
       

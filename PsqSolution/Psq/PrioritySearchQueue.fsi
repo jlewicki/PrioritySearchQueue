@@ -45,5 +45,8 @@ module PrioritySearchQueue =
    /// O(1). Returns the entry with the minimum value in the queue. Returns None if the queue is empty.
    val peekMin: queue:PrioritySearchQueue<'K, 'V> -> option<'K*'V>
 
+   /// O(N). Returns a sequence that iterates the items in the queue.
+   val toSeq: queue:PrioritySearchQueue<'K, 'V> -> seq<'K*'V>
+
 
 

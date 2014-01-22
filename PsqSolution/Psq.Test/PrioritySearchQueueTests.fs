@@ -36,3 +36,20 @@ type OfOrderedSeq() =
    member x.Should_Throw_For_Empty_Queue() = 
       Assert.Throws<InvalidOperationException>( fun() ->
          Q.empty |> Q.min |> ignore )
+
+
+type ToSeq() = 
+   [<Fact>]
+   member x.Should_Return_Empty_Sequence_If_Queue_Is_Empty() = 
+      Assert.True( Q.empty |> Q.toSeq |> Seq.isEmpty )
+
+   [<Fact>]
+   member x.Should_Return_Sequence_Containing_Same_Elements_As_Queue() =
+      let items =  [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let q = Q.ofOrderedSeq items
+      let seq = q |> Q.toSeq
+      Assert.Equal( q.Length, seq |> Seq.length )
+      seq
+      // Note that relative ordering of D/E is undefined.  This happens to be the ordering that is producded
+      |> Seq.zip [("C", 1); ("E", 2); ("D", 2); ("A", 3); ("B", 5)] 
+      |> Seq.iter Assert.Equal
