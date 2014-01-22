@@ -25,5 +25,8 @@ module PrioritySearchQueue =
    [<GeneralizableValue>]
    val empty<'K, 'V when 'K: comparison and 'V: comparison> : PrioritySearchQueue<'K, 'V>
 
+   /// O(1). Returns a value indicating if the queue is empty.
+   val isEmpty: queue:PrioritySearchQueue<'K, 'V> -> bool
+
 
 

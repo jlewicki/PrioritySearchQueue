@@ -1,5 +1,11 @@
-﻿namespace Psq.Test
+﻿namespace Psq.Test.PrioritySearchQueue
 open Psq
+open Xunit
 
-type Class1() = 
-    member this.X = "F#"
+module Q = Psq.PrioritySearchQueue
+
+type Empty() =
+   [<Fact>]
+   member x.Should_Be_Empty() =
+      Assert.Equal( 0, Q.empty.Length )
+      Assert.True( Q.empty |> Q.isEmpty )
