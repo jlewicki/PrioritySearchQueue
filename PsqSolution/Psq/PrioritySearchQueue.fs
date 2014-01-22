@@ -8,10 +8,10 @@ open System.Collections.Generic
 // Priority Search Queues" by R. Hinze.
 module internal PSQ = 
 
-
    // The priority search queue is defined in terms of a semi-heap strucure called a pennant.  This pennant is described
    // in relation to a tournament tree, hence the winner and loser nomenclature. Note that winnerKey and winnerValue
-   // logically form a tuple/pair, but they are split out into discrete properties for efficiency.
+   // logically form a tuple/pair, but they are split out into discrete properties for efficiency. Note additionaly that
+   // the pennant its length as a discrete property to ensure constant-time access.
    type Pennant<'K, 'V when 'V: comparison> = 
       | Void
       | Winner of winnerKey:'K * winnerValue: 'V * ltree:LoserTree<'K, 'V> * maxKey:'K * length:int
