@@ -93,3 +93,33 @@ type Find() =
       
      Assert.Throws<KeyNotFoundException>( fun() ->
          q.Find "D" |> ignore )
+
+
+ type Add() = 
+   [<Fact>]
+   member x.Should_Add_Entry_To_Queue() =
+      let items = [("A", 3); ("B", 5); ("C", 2);] 
+      let q = Q.ofOrderedSeq items
+
+      let newQ = q |> Q.add "AA" 1
+      let minKey, minVal = newQ.Min
+      Assert.Equal( 4, newQ.Length )
+      Assert.Equal<string>( "AA", minKey )
+      Assert.Equal( 1, minVal )
+      Assert.Equal( 1, newQ.Find "AA")
+
+   [<Fact>]
+   member x.Should_Update_Existing_Entry() =
+      let items = [("A", 3); ("B", 5); ("C", 2);] 
+      let q = Q.ofOrderedSeq items
+
+      let newQ = q |> Q.add "A" 1
+      let minKey, minVal = newQ.Min
+      Assert.Equal( 3, newQ.Length )
+      Assert.Equal<string>( "A", minKey )
+      Assert.Equal( 1, minVal )
+      Assert.Equal( 1, newQ.Find "A")
+
+
+
+
