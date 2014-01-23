@@ -3,7 +3,9 @@ open System.Collections
 open System.Collections.Generic
 
 
-/// A priority search queue is a immutable collection that combines the behavior of a priority queue and a map, so that 
+/// A priority search queue is a immutable collection that combines the behavior of a priority queue and a associative 
+/// map. Traditional priority queue operations such as constant time access to a minimum value, and dictionary operations
+/// such as logarithmic access to a binding for a given key are both supported.
 [<Class>]
 [<Sealed>]
 type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> = 
@@ -31,7 +33,7 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> =
     /// the key.
     member TryFind: key:'K -> option<'V>
 
-    /// O(lgN).  Adds the specified key and value to the queue, replacing an exisiting entry if necessary.
+    /// O(lgN). Adds the specified key and value to the queue, replacing an exisiting entry if necessary.
     member Add: key:'K * value:'V -> PrioritySearchQueue<'K, 'V>
  
 
@@ -68,6 +70,6 @@ module PrioritySearchQueue =
    /// contain an entry with the key.
    val tryFind: key:'K -> queue:PrioritySearchQueue<'K, 'V> -> option<'V>
 
-   /// O(lgN).  Adds the specified key and value to the queue, replacing an exisiting entry if necessary.
+   /// O(lgN). Adds the specified key and value to the queue, replacing an exisiting entry if necessary.
    val add: key:'K -> value:'V -> PrioritySearchQueue<'K, 'V> -> PrioritySearchQueue<'K, 'V>
 
