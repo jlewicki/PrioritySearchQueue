@@ -10,14 +10,14 @@ module internal PSQ =
 
    // The priority search queue is defined in terms of a semi-heap strucure called a pennant.  This pennant is described
    // in relation to a tournament tree, hence the winner and loser nomenclature. Note that winnerKey and winnerValue
-   // logically form a tuple/pair, but they are split out into discrete properties for efficiency. Note additionaly that
-   // the pennant its length as a discrete property to ensure constant-time access.
+   // logically form a tuple/pair, but they are split out into discrete properties for efficiency. Also note that
+   // the loser tree has its length as a discrete property to ensure constant-time access.
    type Pennant<'K, 'V when 'V: comparison> = 
       | Void
-      | Winner of winnerKey:'K * winnerValue: 'V * ltree:LoserTree<'K, 'V> * maxKey:'K * length:int
+      | Winner of winnerKey:'K * winnerValue: 'V * ltree:LoserTree<'K, 'V> * maxKey:'K
    and LoserTree<'K, 'V> =
       | Start 
-      | Loser of loserKey:'K * loserValue:'V * left:LoserTree<'K, 'V> * splitKey:'K * right:LoserTree<'K, 'V> 
+      | Loser of loserKey:'K * loserValue:'V * left:LoserTree<'K, 'V> * splitKey:'K * right:LoserTree<'K, 'V> * length:int 
 
 
    // An empty pennant.
@@ -30,15 +30,22 @@ module internal PSQ =
       | _ -> false
 
 
-   // Returns the number of items in the queue. This is O(1).
+   // Returns the number of items in the pennant. This is O(1).
    let length = function
       | Void -> 0
-      | Winner( _, _, _, _, l) -> l
+      | Winner( _, _, Start, _) -> 1
+      | Winner( _, _, Loser(_, _, _, _, _,length), _) -> length + 1
+
+
+   // Returns the number of items in the tree.  This is O(1).
+   let lengthTree = function
+      | Start -> 0
+      | Loser(_, _, _, _, _,length) -> length
 
 
    // Returns a pennant containing the specified key and value.
    let inline singleton key value = 
-      Winner( key, value, Start, key, 1 )
+      Winner( key, value, Start, key)
 
 
    // Returns a pennant containing the key and value of the specified pair.
@@ -49,19 +56,19 @@ module internal PSQ =
    // Returns the minimum key and value in the pennant, or throws if pennant is empty.  This is O(1).
    let minBinding = function
       | Void -> invalidOp "empty pennant"
-      | Winner( k, v, _, _, _) -> k, v
+      | Winner( k, v, _, _) -> k, v
 
 
    // Returns the minimum key and value in the pennan, or None if the pennant is empty.  This is O(1).
    let peekMinBinding = function
       | Void -> None
-      | Winner( k, v, _, _, _) -> Some(k, v)
+      | Winner( k, v, _, _) -> Some(k, v)
       
 
    // Returns the key of the binding with the maximum value in the pennant.  This is O(1).
    let maxKey = function
       | Void -> invalidOp "empty pennant"
-      | Winner( _, _, _, max, _) -> max
+      | Winner( _, _, _, max) -> max
 
  
    // Merges two pennants and returns a new pennant, such that keys in the first tree are strictly smaller than keys 
@@ -70,11 +77,12 @@ module internal PSQ =
       match pennant1, pennant2 with
       | Void, _ -> pennant2
       | _, Void -> pennant1
-      | Winner( key1, value1, ltree1, max1, length1), Winner( key2, value2, ltree2, max2, length2) ->
+      | Winner( key1, value1, ltree1, max1), Winner( key2, value2, ltree2, max2) ->
+         let lengthTrees = (lengthTree ltree1) + (lengthTree ltree2)
          if value1 < value2 then
-            Winner( key1, value1, (Loser(key2, value2, ltree1, max1, ltree2)), max2, length1 + length2)
+            Winner( key1, value1, (Loser(key2, value2, ltree1, max1, ltree2, lengthTrees + 1)), max2)
          else
-            Winner( key2, value2, (Loser(key1, value1, ltree1, max1, ltree2)), max2, length1 + length2)
+            Winner( key2, value2, (Loser(key1, value1, ltree1, max1, ltree2, lengthTrees + 1)), max2)
 
 
    // A variation of left and right fold that folds a list in a binary sub-division fashion, producing an almost 
@@ -105,24 +113,52 @@ module internal PSQ =
          merge pennant singleton ) empty
 
 
-   // Active pattern for extracting the minumum value from the pennant.
-   // If the pennant is not empty, Min is returned and carries the key and value of the minimum entry in the pennant, 
-   // and an updated pennant with the minumum entry removed.  Otherwise Empty is returned.
-   let (|Empty|Min|) pennant = 
+    // Active pattern for extracting the minumum value from the pennant.
+   module PriorityQueueView = 
+     
+      // If the pennant is not empty, Min is returned and carries the key and value of the minimum entry in the pennant, 
+      // and an updated pennant with the minumum entry removed.  Otherwise Empty is returned.
+      let (|Empty|Min|) pennant = 
 
-      // Returns the second best entry from the tree, by effectively 'replaying' the tournament without the winner.
-      let rec secondBest loserTree key length= 
-         match loserTree, key with
-         | Start, _ -> Void
-         | Loser(loserKey, loserValue, ltree, splitKey, rtree), m ->
-            if loserKey <= splitKey then
-               merge (Winner(loserKey, loserValue, ltree, splitKey, length)) (secondBest rtree m (length-1))
-            else 
-               merge (secondBest ltree splitKey (length-1)) (Winner(loserKey, loserValue, rtree, m, length))
+         // Returns the second best entry from the tree, by effectively 'replaying' the tournament without the winner.
+         let rec secondBest loserTree key  = 
+            match loserTree, key with
+            | Start, _ -> Void
+            | Loser(loserKey, loserValue, ltree, splitKey, rtree, _), m ->
+               if loserKey <= splitKey then
+                  merge (Winner(loserKey, loserValue, ltree, splitKey)) (secondBest rtree m)
+               else 
+                  merge (secondBest ltree splitKey) (Winner(loserKey, loserValue, rtree, m))
 
+         match pennant with
+         | Void -> Empty
+         | Winner(key, value, ltree, maxKey) -> Min( key, value, (secondBest ltree maxKey))
+
+
+   // Active pattern for viewing the pennant as a tournament tree.
+   module TournamentTreeView = 
+      let (|Empty|Singleton|Merged|) pennant = 
+         match pennant with
+         | Void -> Empty
+         | Winner(key, value, Start, _) -> Singleton(key, value)
+         | Winner(key, value, (Loser(lkey, lvalue, leftTree, splitKey, rightTree, _)), maxKey) ->         
+            let pennant1, pennant2 = 
+               if lkey <= splitKey then
+                  Winner(lkey, lvalue, leftTree, splitKey), Winner(key, value, rightTree, maxKey)
+               else
+                  Winner(key, value, leftTree, splitKey), Winner(lkey, lvalue, rightTree, maxKey)
+            Merged(pennant1, pennant2)
+
+   // Returns the value associated with the specified key in the pennant, or None if there is no such entry.
+   let rec lookup key pennant = 
       match pennant with
-      | Void -> Empty
-      | Winner(key, value, ltree, maxKey, length) -> Min( key, value, (secondBest ltree maxKey (length-1)))
+      | TournamentTreeView.Empty -> 
+         None
+      | TournamentTreeView.Singleton(k, v) -> 
+         if key = k then Some(v) else None
+      | TournamentTreeView.Merged(pennant1, pennant2) ->
+         if key <= maxKey pennant1 then lookup key pennant1
+         else lookup key pennant2
 
    
    // Iterator class for a pennant
@@ -146,12 +182,12 @@ module internal PSQ =
       let moveNext() =
          if isStarted then 
             match currentPennant with 
-            | Empty -> alreadyCompleted()
-            | Min( _, _, rest) ->
+            | PriorityQueueView.Empty -> alreadyCompleted()
+            | PriorityQueueView.Min( _, _, rest) ->
                currentPennant <- rest
                not(currentPennant |> isEmpty)
          else
-             isStarted <- true;  // The first call to MoveNext "starts" the enumeration.
+             isStarted <- true;
              not (currentPennant |> isEmpty)
  
       interface IEnumerator<KeyValuePair<'K, 'V>> with
@@ -168,7 +204,7 @@ module internal PSQ =
 [<Sealed>]
 type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal( pennant: PSQ.Pennant<'K, 'V>  ) = 
 
-   static let collectionIsReadOnly() = new NotSupportedException("The operation is not valid because the collection is read-only")
+   static let collectionIsReadOnly() = new InvalidOperationException("The operation is not valid because the collection is read-only.")
    
    static let empty = new PrioritySearchQueue<'K, 'V>( PSQ.empty )
 
@@ -179,6 +215,14 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal
    member this.Min = PSQ.minBinding pennant
 
    member this.PeekMin = PSQ.peekMinBinding pennant
+     
+   member this.Find key = 
+      match PSQ.lookup key pennant with
+      | Some(value) -> value
+      | None -> raise (KeyNotFoundException(sprintf "%A" key))
+
+   member this.TryFind key = 
+      PSQ.lookup key pennant 
       
    static member Empty : PrioritySearchQueue<'K, 'V> = empty
 
@@ -213,4 +257,10 @@ module PrioritySearchQueue =
    let toSeq (queue:PrioritySearchQueue<'K, 'V>) = 
       queue
       |> Seq.map( fun pair -> pair.Key, pair.Value )
+
+   let find (key:'K) (queue:PrioritySearchQueue<'K, 'V>) = 
+      queue.Find key
+
+   let tryFind (key:'K) (queue:PrioritySearchQueue<'K, 'V>) = 
+      queue.TryFind key
       

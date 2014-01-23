@@ -53,3 +53,23 @@ type ToSeq() =
       // Note that relative ordering of D/E is undefined.  This happens to be the ordering that is producded
       |> Seq.zip [("C", 1); ("E", 2); ("D", 2); ("A", 3); ("B", 5)] 
       |> Seq.iter Assert.Equal
+
+
+type TryFind() = 
+   [<Fact>]
+   member x.Should_Find_Value_For_Existing_Key() = 
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let q = Q.ofOrderedSeq items
+      items
+      |> List.iter (fun (k, v) -> 
+         let optValue = q.TryFind(k)
+         Assert.True( optValue.IsSome )
+         Assert.Equal( v, optValue.Value ) )
+
+   [<Fact>]
+   member x.Should_Return_None_For_Missing_Key() = 
+     let items = [("A", 3); ("B", 5); ("C", 1);] 
+     let q = Q.ofOrderedSeq items
+
+     let optValue = q.TryFind("D")
+     Assert.True( optValue.IsNone )
