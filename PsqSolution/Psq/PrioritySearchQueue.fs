@@ -136,7 +136,7 @@ module internal PSQ =
 
 
    // Active pattern for viewing the pennant as a tournament tree.
-   module TournamentTreeView = 
+   module TournamentView = 
       let (|Empty|Singleton|Merged|) pennant = 
          match pennant with
          | Void -> Empty
@@ -149,18 +149,47 @@ module internal PSQ =
                   Winner(key, value, leftTree, splitKey), Winner(lkey, lvalue, rightTree, maxKey)
             Merged(pennant1, pennant2)
 
-   // O(lgN) on average.  Returns the value associated with the specified key in the pennant, or None if there is no such entry.
+   // Returns the value associated with the specified key in the pennant, or None if there is no such entry.  This is
+   // O(lgN) on average.  
    let rec lookup key pennant = 
       match pennant with
-      | TournamentTreeView.Empty -> 
+      | TournamentView.Empty -> 
          None
-      | TournamentTreeView.Singleton(k, v) -> 
+      | TournamentView.Singleton(k, v) -> 
          if key = k then Some(v) else None
-      | TournamentTreeView.Merged(pennant1, pennant2) ->
+      | TournamentView.Merged(pennant1, pennant2) ->
          if key <= maxKey pennant1 then lookup key pennant1
          else lookup key pennant2
 
    
+   // Returns pennant, with the value of the specifiedd key adjusted by applying the specied function to the current 
+   // value. This is O(lgN) on average.
+   let rec adjust f key pennant = 
+      match pennant with 
+      | TournamentView.Empty -> 
+         pennant
+      | TournamentView.Singleton(k, v) -> 
+         if k = key then singleton k (f v) else pennant
+      | TournamentView.Merged(pennant1, pennant2) -> 
+         if key <= maxKey pennant1 then merge (adjust f key pennant1) pennant2
+         else merge pennant1 (adjust f key pennant2) 
+
+
+   // Returns pennant, containing an entry for the specified key and value.  If the pennant already contains the 
+   // key, the corresponding value is replaced.  This is O(lgN) on average. Note that because no effort is made 
+   // to balance loser trees, deeply lopsided trees amy be produced aftre multiple insertions.
+   let rec insert key value pennant = 
+      match pennant with 
+      | TournamentView.Empty -> singleton key value
+      | TournamentView.Singleton(k, _) -> 
+         if key < k then merge (singleton key value) pennant
+         elif key = k then singleton key value  // Update existing value
+         else merge pennant (singleton key value) 
+      | TournamentView.Merged(pennant1, pennant2) -> 
+         if key <= maxKey pennant1 then merge (insert key value pennant1) pennant2
+         else merge pennant1 (insert key value pennant2) 
+
+
    // Iterator class for a pennant
    type PennantEnumerator<'K, 'V when 'K: comparison and 'V: comparison> ( pennant : Pennant<'K, 'V> ) =
       let notStarted() = 
@@ -229,6 +258,12 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal
    member this.TryFind key = 
       PSQ.lookup key pennant 
       
+   member this.Item 
+      with get(key:'K) = this.Find(key)
+
+   member this.Add(key, value) =
+      new PrioritySearchQueue<'K, 'V>( PSQ.insert key value pennant )
+
    static member Empty : PrioritySearchQueue<'K, 'V> = 
       empty
 
@@ -269,4 +304,7 @@ module PrioritySearchQueue =
 
    let tryFind (key:'K) (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.TryFind key
+      
+   let add (key:'K) (value:'V) (queue:PrioritySearchQueue<'K, 'V>) = 
+      queue.Add(key, value)
       

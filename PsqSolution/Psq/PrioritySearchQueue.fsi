@@ -25,11 +25,15 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> =
 
     /// O(lgN). Returns the value associated with the specified key. Throws an exception if the queue does not contain 
     /// an entry with the key.
-    member Find: 'K -> 'V
+    member Find: key:'K -> 'V
 
     /// O(lgN). Returns the value associated with the specified key. Returns None if the queue does not contain an entry with 
     /// the key.
-    member TryFind: 'K -> option<'V>
+    member TryFind: key:'K -> option<'V>
+
+    /// O(lgN).  Adds the specified key and value to the queue, replacing an exisiting entry if necessary.
+    member Add: key:'K * value:'V -> PrioritySearchQueue<'K, 'V>
+ 
 
 
 /// Functional operators for <c>PrioritySearchQueue<_, _></c> type.
@@ -64,5 +68,6 @@ module PrioritySearchQueue =
    /// contain an entry with the key.
    val tryFind: key:'K -> queue:PrioritySearchQueue<'K, 'V> -> option<'V>
 
-
+   /// O(lgN).  Adds the specified key and value to the queue, replacing an exisiting entry if necessary.
+   val add: key:'K -> value:'V -> PrioritySearchQueue<'K, 'V> -> PrioritySearchQueue<'K, 'V>
 
