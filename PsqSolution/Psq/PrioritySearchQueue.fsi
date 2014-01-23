@@ -5,7 +5,7 @@ open System.Collections.Generic
 
 /// A priority search queue is a immutable collection that combines the behavior of a priority queue and a associative 
 /// map. Traditional priority queue operations such as constant time access to a minimum value, and dictionary operations
-/// such as logarithmic access to a binding for a given key are both supported.
+/// such as logarithmic access to a binding for a given key, are both supported.
 [<Class>]
 [<Sealed>]
 type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> = 
