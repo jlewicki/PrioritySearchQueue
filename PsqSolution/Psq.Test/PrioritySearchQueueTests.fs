@@ -121,5 +121,19 @@ type Find() =
       Assert.Equal( 1, newQ.Find "A")
 
 
+type Remove() = 
+   [<Fact>]
+   member x.Should_Remove_Entry_From_Queue() =
+      let items = [("A", 3); ("B", 5); ("C", 2);] 
+      let q = Q.ofOrderedSeq items
+
+      let newQ = q |> Q.remove "C"
+      let minKey, minVal = newQ.Min
+      Assert.Equal( 2, newQ.Length )
+      Assert.Equal<string>( "A", minKey )
+      Assert.Equal( 3, minVal )
+      Assert.True( (newQ.TryFind "C").IsNone )
+
+
 
 

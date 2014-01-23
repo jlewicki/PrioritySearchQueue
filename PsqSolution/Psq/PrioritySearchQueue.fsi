@@ -33,8 +33,12 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> =
     /// the key.
     member TryFind: key:'K -> option<'V>
 
-    /// O(lgN). Adds the specified key and value to the queue, replacing an exisiting entry if necessary.
+    /// O(lgN). Adds the specified key and value to this queue, replacing an existing entry if necessary.
     member Add: key:'K * value:'V -> PrioritySearchQueue<'K, 'V>
+
+    /// O(lgN). Removes the entry with the specified key to this queue, and returns an updated queue.  This queue is returned
+    /// unchanged if there is no matching entry.
+    member Remove: key:'K -> PrioritySearchQueue<'K, 'V>
  
 
 
@@ -70,6 +74,10 @@ module PrioritySearchQueue =
    /// contain an entry with the key.
    val tryFind: key:'K -> queue:PrioritySearchQueue<'K, 'V> -> option<'V>
 
-   /// O(lgN). Adds the specified key and value to the queue, replacing an exisiting entry if necessary.
+   /// O(lgN). Adds the specified key and value to the queue, replacing an existing entry if necessary.
    val add: key:'K -> value:'V -> PrioritySearchQueue<'K, 'V> -> PrioritySearchQueue<'K, 'V>
+
+   /// O(lgN). Removes the entry with the specified key to the queue, and returns an updated queue.  The queue is returned
+   /// unchanged if there is no matching entry.
+   val remove: key:'K -> PrioritySearchQueue<'K, 'V> -> PrioritySearchQueue<'K, 'V>
 
