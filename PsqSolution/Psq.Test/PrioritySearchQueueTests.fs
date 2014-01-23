@@ -1,5 +1,6 @@
 ﻿namespace Psq.Test.PrioritySearchQueue
 open System
+open System.Collections.Generic
 open Psq
 open Xunit
 module Q = Psq.PrioritySearchQueue
@@ -73,3 +74,22 @@ type TryFind() =
 
      let optValue = q.TryFind("D")
      Assert.True( optValue.IsNone )
+
+
+type Find() = 
+   [<Fact>]
+   member x.Should_Find_Value_For_Existing_Key() = 
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let q = Q.ofOrderedSeq items
+      items
+      |> List.iter (fun (k, v) -> 
+         let value = q.Find(k)
+         Assert.Equal( v, value ) )
+
+   [<Fact>]
+   member x.Should_Throw_For_Missing_Key() = 
+     let items = [("A", 3); ("B", 5); ("C", 1);] 
+     let q = Q.ofOrderedSeq items
+      
+     Assert.Throws<KeyNotFoundException>( fun() ->
+         q.Find "D" |> ignore )
