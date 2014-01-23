@@ -23,11 +23,11 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> =
     /// O(1). Returns the entry with the minimum value in this queue. Returns None if the queue is empty.
     member PeekMin: option<'K*'V>
 
-    /// Returns the value associated with the specified key. Throws an exception if the queue does not contain an entry with 
-    /// the key.
+    /// O(lgN). Returns the value associated with the specified key. Throws an exception if the queue does not contain 
+    /// an entry with the key.
     member Find: 'K -> 'V
 
-    /// Returns the value associated with the specified key. Returns None if the queue does not contain an entry with 
+    /// O(lgN). Returns the value associated with the specified key. Returns None if the queue does not contain an entry with 
     /// the key.
     member TryFind: 'K -> option<'V>
 
@@ -56,11 +56,11 @@ module PrioritySearchQueue =
    /// O(N). Returns a sequence that iterates the items in the queue.
    val toSeq: queue:PrioritySearchQueue<'K, 'V> -> seq<'K*'V>
 
-   /// Returns the value associated with the specified key in the queue. Throws an exception if the queue does not 
+   /// O(lgN). Returns the value associated with the specified key in the queue. Throws an exception if the queue does not 
    /// contain an entry with the key.
    val find: key:'K -> queue:PrioritySearchQueue<'K, 'V> -> 'V 
 
-   /// Returns the value associated with the specified key in the queue. Returns None if the queue does not 
+   /// O(lgN). Returns the value associated with the specified key in the queue. Returns None if the queue does not 
    /// contain an entry with the key.
    val tryFind: key:'K -> queue:PrioritySearchQueue<'K, 'V> -> option<'V>
 

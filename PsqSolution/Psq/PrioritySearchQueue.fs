@@ -149,7 +149,7 @@ module internal PSQ =
                   Winner(key, value, leftTree, splitKey), Winner(lkey, lvalue, rightTree, maxKey)
             Merged(pennant1, pennant2)
 
-   // Returns the value associated with the specified key in the pennant, or None if there is no such entry.
+   // O(lgN) on average.  Returns the value associated with the specified key in the pennant, or None if there is no such entry.
    let rec lookup key pennant = 
       match pennant with
       | TournamentTreeView.Empty -> 
@@ -206,15 +206,20 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal
 
    static let collectionIsReadOnly() = new InvalidOperationException("The operation is not valid because the collection is read-only.")
    
-   static let empty = new PrioritySearchQueue<'K, 'V>( PSQ.empty )
+   static let empty = 
+      new PrioritySearchQueue<'K, 'V>( PSQ.empty )
 
-   member this.Length = PSQ.length pennant
+   member this.Length = 
+      PSQ.length pennant
 
-   member this.IsEmpty = this.Length = 0
+   member this.IsEmpty = 
+      this.Length = 0
 
-   member this.Min = PSQ.minBinding pennant
+   member this.Min = 
+      PSQ.minBinding pennant
 
-   member this.PeekMin = PSQ.peekMinBinding pennant
+   member this.PeekMin = 
+      PSQ.peekMinBinding pennant
      
    member this.Find key = 
       match PSQ.lookup key pennant with
@@ -224,7 +229,8 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal
    member this.TryFind key = 
       PSQ.lookup key pennant 
       
-   static member Empty : PrioritySearchQueue<'K, 'V> = empty
+   static member Empty : PrioritySearchQueue<'K, 'V> = 
+      empty
 
    interface IEnumerable with
       member x.GetEnumerator() = 
