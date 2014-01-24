@@ -16,8 +16,8 @@ module internal PSQ =
       | Void
       | Winner of winnerKey:'K * winnerValue: 'V * ltree:LoserTree<'K, 'V> * maxKey:'K
    and LoserTree<'K, 'V> =
-      | Start 
-      | Loser of loserKey:'K * loserValue:'V * left:LoserTree<'K, 'V> * splitKey:'K * right:LoserTree<'K, 'V> * length:int 
+      | Leaf 
+      | Nd of loserKey:'K * loserValue:'V * left:LoserTree<'K, 'V> * splitKey:'K * right:LoserTree<'K, 'V> * length:int 
 
 
    // An empty pennant.
@@ -33,19 +33,19 @@ module internal PSQ =
    // Returns the number of items in the pennant. This is O(1).
    let length = function
       | Void -> 0
-      | Winner( _, _, Start, _) -> 1
-      | Winner( _, _, Loser(_, _, _, _, _,length), _) -> length + 1
+      | Winner( _, _, Leaf, _) -> 1
+      | Winner( _, _, Nd(_, _, _, _, _,length), _) -> length + 1
 
 
    // Returns the number of items in the tree.  This is O(1).
    let lengthTree = function
-      | Start -> 0
-      | Loser(_, _, _, _, _,length) -> length
+      | Leaf -> 0
+      | Nd(_, _, _, _, _,length) -> length
 
 
    // Returns a pennant containing the specified key and value.
    let inline singleton key value = 
-      Winner( key, value, Start, key)
+      Winner( key, value, Leaf, key)
 
 
    // Returns a pennant containing the key and value of the specified pair.
@@ -80,9 +80,27 @@ module internal PSQ =
       | Winner( key1, value1, ltree1, max1), Winner( key2, value2, ltree2, max2) ->
          let lengthTrees = (lengthTree ltree1) + (lengthTree ltree2)
          if value1 < value2 then
-            Winner( key1, value1, (Loser(key2, value2, ltree1, max1, ltree2, lengthTrees + 1)), max2)
+            Winner( key1, value1, (Nd(key2, value2, ltree1, max1, ltree2, lengthTrees + 1)), max2)
          else
-            Winner( key2, value2, (Loser(key1, value1, ltree1, max1, ltree2, lengthTrees + 1)), max2)
+            Winner( key2, value2, (Nd(key1, value1, ltree1, max1, ltree2, lengthTrees + 1)), max2)
+
+
+//   let node key value left splitKey right =
+//      Nd(key, value, left, splitKey, right, 1 + lengthTree left + lengthTree right)
+//      
+//   let rec private balance tree = 
+//      let singleRight key value 
+//
+//
+//      let weightFactor = 4   
+//      match tree with
+//      | Leaf -> Leaf
+//      | Nd(k, v, left, splitKey, right, _) ->
+//         let llen = lengthTree left
+//         let rlen = lengthTree right
+//         if llen + rlen < 2  then node k v left splitKey right
+//         elif rlen > weightFactor * llen then 
+//      
 
 
    // Returns a pennant containing values from the specified list, which *must* be sorted by key, in ascending order.
@@ -122,8 +140,8 @@ module internal PSQ =
          // Returns the second best entry from the tree, by effectively 'replaying' the tournament without the winner.
          let rec secondBest loserTree key  = 
             match loserTree, key with
-            | Start, _ -> Void
-            | Loser(loserKey, loserValue, ltree, splitKey, rtree, _), m ->
+            | Leaf, _ -> Void
+            | Nd(loserKey, loserValue, ltree, splitKey, rtree, _), m ->
                if loserKey <= splitKey then
                   merge (Winner(loserKey, loserValue, ltree, splitKey)) (secondBest rtree m)
                else 
@@ -143,8 +161,8 @@ module internal PSQ =
       let (|Empty|Singleton|Merged|) pennant = 
          match pennant with
          | Void -> Empty
-         | Winner(key, value, Start, _) -> Singleton(key, value)
-         | Winner(key, value, (Loser(lkey, lvalue, leftTree, splitKey, rightTree, _)), maxKey) ->         
+         | Winner(key, value, Leaf, _) -> Singleton(key, value)
+         | Winner(key, value, (Nd(lkey, lvalue, leftTree, splitKey, rightTree, _)), maxKey) ->         
             let pennant1, pennant2 = 
                if lkey <= splitKey then
                   Winner(lkey, lvalue, leftTree, splitKey), Winner(key, value, rightTree, maxKey)
@@ -222,6 +240,8 @@ module internal PSQ =
       | TournamentView.Singleton(k, v) -> [(k, v)] // Since we know v <= value
       | TournamentView.Merged(pennant1, pennant2) ->
          List.append (atMost value pennant1) (atMost value pennant2) 
+
+
             
 
    // Iterator class for a pennant
