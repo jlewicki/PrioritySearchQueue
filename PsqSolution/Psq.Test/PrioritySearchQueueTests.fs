@@ -150,5 +150,28 @@ type Remove() =
       Assert.True( (newQ.TryFind "C").IsSome )
 
 
+type AtMost() =
+   [<Fact>]
+   member x.Should_Return_List_With_Values_LTEQ_Value() =
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let q = Q.ofOrderedSeq items
+
+      let entries = Q.atMost 3 q
+      Assert.Equal( 4, entries.Length )
+      entries
+      |> List.zip [("A", 3); ("C", 1); ("D", 2); ("E", 2)] 
+      |> List.iter (fun ((expKey, expValue), (key, value)) ->
+         Assert.Equal<string>(expKey, key)
+         Assert.Equal(expValue, value) )
+
+
+   [<Fact>]
+   member x.Should_Return_Empty_List_If_Value_Is_LT_Min() =
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let q = Q.ofOrderedSeq items
+
+      let entries = Q.atMost 0 q
+      Assert.Equal( 0, entries.Length )
+      
 
 

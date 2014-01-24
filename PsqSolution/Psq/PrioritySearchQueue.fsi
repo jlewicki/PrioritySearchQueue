@@ -29,8 +29,8 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> =
     /// an entry with the key.
     member Find: key:'K -> 'V
 
-    /// O(lgN). Returns the value associated with the specified key. Returns None if the queue does not contain an entry with 
-    /// the key.
+    /// O(lgN). Returns the value associated with the specified key. Returns None if the queue does not contain an 
+    /// entry with the key.
     member TryFind: key:'K -> option<'V>
 
     /// O(lgN). Indexer that returns the value associated with the specified key. Throws an exception if the queue 
@@ -40,11 +40,14 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> =
     /// O(lgN). Adds the specified key and value to this queue, replacing an existing entry if necessary.
     member Add: key:'K * value:'V -> PrioritySearchQueue<'K, 'V>
 
-    /// O(lgN). Removes the entry with the specified key to this queue, and returns an updated queue.  This queue is returned
-    /// unchanged if there is no matching entry.
+    /// O(lgN). Removes the entry with the specified key to this queue, and returns an updated queue.  This queue is 
+    /// returned unchanged if there is no matching entry.
     member Remove: key:'K -> PrioritySearchQueue<'K, 'V>
- 
 
+    /// O(N) worst case. Returns a list of entries, in ascending order by key, that contain values from this queue that
+    /// are less than or equal to the specified value.
+    member AtMost: value:'V -> list<'K*'V>
+ 
 
 /// Functional operators for <c>PrioritySearchQueue<_, _></c> type.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -70,8 +73,8 @@ module PrioritySearchQueue =
    /// O(N). Returns a sequence that iterates the items in the queue.
    val toSeq: queue:PrioritySearchQueue<'K, 'V> -> seq<'K*'V>
 
-   /// O(lgN). Returns the value associated with the specified key in the queue. Throws an exception if the queue does not 
-   /// contain an entry with the key.
+   /// O(lgN). Returns the value associated with the specified key in the queue. Throws an exception if the queue does 
+   /// not contain an entry with the key.
    val find: key:'K -> queue:PrioritySearchQueue<'K, 'V> -> 'V 
 
    /// O(lgN). Returns the value associated with the specified key in the queue. Returns None if the queue does not 
@@ -84,4 +87,8 @@ module PrioritySearchQueue =
    /// O(lgN). Removes the entry with the specified key to the queue, and returns an updated queue.  The queue is returned
    /// unchanged if there is no matching entry.
    val remove: key:'K -> PrioritySearchQueue<'K, 'V> -> PrioritySearchQueue<'K, 'V>
+
+   /// O(N) worst case. Returns a list of entries, in ascending order by key, that contain values from the specified 
+   /// queue that are less than or equal to the specified value.
+   val atMost: value:'V -> PrioritySearchQueue<'K, 'V> -> list<'K*'V>
 
