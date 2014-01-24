@@ -135,7 +135,11 @@ module internal PSQ =
          | Winner(key, value, ltree, maxKey) -> Min( key, value, (secondBest ltree maxKey))
 
 
-   // Active pattern for viewing the pennant as a tournament tree.
+   // Active pattern for viewing the pennant as a tournament tree.  That is, a pennant is either
+   // - Empty
+   // - Singleton: A tree containing single entry
+   // - Merged: The result of merging two pennants to determine a winner.  This is effectively the inverse of the
+   // merge function.
    module TournamentView = 
       let (|Empty|Singleton|Merged|) pennant = 
          match pennant with
@@ -154,10 +158,9 @@ module internal PSQ =
    // O(lgN) on average.  
    let rec lookup key pennant = 
       match pennant with
-      | TournamentView.Empty -> 
-         None
-      | TournamentView.Singleton(k, v) -> 
-         if key = k then Some(v) else None
+      | PriorityQueueView.Min(k, v, _) when k = key -> Some(v)
+      | TournamentView.Empty -> None
+      | TournamentView.Singleton(k, v) -> None // k = key handled by Min case
       | TournamentView.Merged(pennant1, pennant2) ->
          if key <= maxKey pennant1 then lookup key pennant1
          else lookup key pennant2
