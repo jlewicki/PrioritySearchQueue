@@ -84,24 +84,81 @@ module internal PSQ =
          else
             Winner( key2, value2, (Nd(key1, value1, ltree1, max1, ltree2, lengthTrees + 1)), max2)
 
-
-   // Smart constructor for LoserTree nodes (keep length an implementation detail) 
-   let node key value leftTree splitKey rightTree = 
-      Nd(key, value, leftTree, splitKey, rightTree, 1 + lengthTree leftTree + lengthTree rightTree)
-
-
-   // Smart constructor for LoserTree nodes.
-   let leaf = Lf
-   
-
-   // Smart view for loser trees.
-   module TreeView = 
+      
+   // Sorry, too much to explain here.  See the paper for more details.
+   let private balance key value left splitKey right = 
+      // Smart constructors (keep length an implementation detail) 
+      let node key value leftTree splitKey rightTree = 
+         Nd(key, value, leftTree, splitKey, rightTree, 1 + lengthTree leftTree + lengthTree rightTree)
+      let leaf = Lf
+    
+      // Smart destructor
       let (|Leaf|Node|) tree = 
          match tree with
          | Lf -> Leaf
          | Nd(key, value,left, splitKey, right, length) ->
             Node(key, value,left, splitKey, right)
-         
+    
+      // Rotation functions
+      let singleLeft key value left splitKey right = 
+         match right with
+         | Leaf -> invalidOp "Shouldn't get here"
+         | Node(key2, value2, left2, splitKey2, right2) -> 
+            if key2 < splitKey2 && value <= value2 then 
+               node key value (node key2 value2 left splitKey left2) splitKey2 right2
+            else 
+               node key2 value2 (node key value left splitKey left2) splitKey2 right2
+      
+      let singleRight key value left splitKey right = 
+         match left with
+         | Leaf -> invalidOp "Shouldn't get here"
+         | Node(key2, value2, left2, splitKey2, right2) -> 
+            if key2 > splitKey2 && value <= value2 then 
+               node key value left2 splitKey2 (node key2 value2 right2 splitKey right)
+            else 
+               node key2 value2 left2 splitKey2 (node key value right2 splitKey right)
+          
+      let doubleLeft key value left splitKey right = 
+         match right with
+         | Leaf -> invalidOp "Shouldn't get here"
+         | Node(key2, value2, left2, splitKey2, right2) -> 
+            singleLeft key value left splitKey (singleRight key2 value2 left2 splitKey2 right2)
+
+      let doubleRight key value left splitKey right = 
+         match right with
+         | Leaf -> invalidOp "Shouldn't get here"
+         | Node(key2, value2, left2, splitKey2, right2) -> 
+            singleRight key value (singleLeft key2 value2 left2 splitKey2 right2) splitKey right
+
+      // Balance functions
+      let balanceLeft key value left splitKey right = 
+         match right with
+         | Leaf -> invalidOp "Shouldn't get here"
+         | Node(key2, value2, left2, splitKey2, right2) ->
+            if lengthTree left2 < lengthTree right2 then 
+               singleLeft key value left splitKey right
+            else 
+               doubleLeft key value left splitKey right 
+
+      let balanceRight key value left splitKey right = 
+         match left with
+         | Leaf -> invalidOp "Shouldn't get here"
+         | Node(key2, value2, left2, splitKey2, right2) ->
+            if lengthTree right2 < lengthTree left2 then 
+               singleRight key value left splitKey right
+            else 
+               doubleRight key value left splitKey right 
+
+      let weightFactor = 4
+      let lenl = lengthTree left
+      let lenr = lengthTree right
+      let f = 
+         if lenl + lenr < 2 then node 
+         elif lenr > weightFactor * lenl then balanceLeft 
+         elif lenl > weightFactor * lenr then balanceRight
+         else node 
+      f key value left splitKey right 
+        
 //      
 //   let rec private balance tree = 
 //      let singleRight key value 
