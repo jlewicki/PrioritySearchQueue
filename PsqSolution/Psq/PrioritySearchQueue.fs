@@ -33,7 +33,7 @@ module internal PSQ =
    // Returns the number of items in the pennant. This is O(1).
    let length = function
       | Void -> 0
-      | Winner( _, _, Leaf, _) -> 1
+      | Winner( _, _, Lf, _) -> 1
       | Winner( _, _, Nd(_, _, _, _, _,length), _) -> length + 1
 
 
