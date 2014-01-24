@@ -330,6 +330,9 @@ module PrioritySearchQueue =
    let ofOrderedSeq (items:seq<'K*'V>) = 
       new PrioritySearchQueue<'K, 'V>( PSQ.fromOrderedList (List.ofSeq items) )
 
+   let ofSeq (items:seq<'K*'V>) = 
+      items |> Seq.sortBy fst |> ofOrderedSeq
+
    let min (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.Min
 

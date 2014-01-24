@@ -3,7 +3,7 @@ open System.Collections
 open System.Collections.Generic
 
 
-/// A priority search queue is a immutable collection that combines the behavior of a priority queue and a associative 
+/// A priority search queue is an immutable collection that combines the behavior of a priority queue and a associative 
 /// map. Traditional priority queue operations such as constant time access to a minimum value, and dictionary operations
 /// such as logarithmic access to a binding for a given key, are both supported.
 [<Class>]
@@ -60,7 +60,10 @@ module PrioritySearchQueue =
    /// O(1). Returns a value indicating if the queue is empty.
    val isEmpty: queue:PrioritySearchQueue<'K, 'V> -> bool
 
-   /// O(N): Returns a new queue contanining the items in the specified sequence, which must be ordered by key, in 
+   /// O(N^2), O(NlgN) on average.  Returns a new queue containing the items in the specified sequence
+   val ofSeq: items:seq<'K*'V> -> PrioritySearchQueue<'K, 'V>
+
+   /// O(N): Returns a new queue containing the items in the specified sequence, which must be ordered by key, in 
    /// ascending order.
    val ofOrderedSeq: items:seq<'K*'V> -> PrioritySearchQueue<'K, 'V>
 

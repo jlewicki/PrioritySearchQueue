@@ -14,9 +14,30 @@ type Empty() =
 
 type OfOrderedSeq() =
    [<Fact>]
+   member x.Should_Create_Empty() =
+      let psq = Q.ofOrderedSeq []
+      Assert.True (psq.IsEmpty)
+
+   [<Fact>]
    member x.Should_Create_Queue() =
       let ordered = [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)]
       let psq = Q.ofOrderedSeq ordered
+      Assert.Equal(5, psq.Length )
+      let k, v = Q.min psq
+      Assert.Equal<string>( "C", k )
+      Assert.Equal( 1, v )
+
+
+type OfSeq() =
+   [<Fact>]
+   member x.Should_Create_Empty() =
+      let psq = Q.ofSeq []
+      Assert.True (psq.IsEmpty)
+
+   [<Fact>]
+   member x.Should_Create_Queue() =
+      let ordered = [("A", 3); ("E", 2); ("C", 1); ("D", 2); ("B", 5); ]
+      let psq = Q.ofSeq ordered
       Assert.Equal(5, psq.Length )
       let k, v = Q.min psq
       Assert.Equal<string>( "C", k )
