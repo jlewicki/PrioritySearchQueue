@@ -16,7 +16,7 @@ module internal PSQ =
       | Void
       | Winner of winnerKey:'K * winnerValue: 'V * ltree:LoserTree<'K, 'V> * maxKey:'K
    and LoserTree<'K, 'V> =
-      | Leaf 
+      | Lf
       | Nd of loserKey:'K * loserValue:'V * left:LoserTree<'K, 'V> * splitKey:'K * right:LoserTree<'K, 'V> * length:int 
 
 
@@ -39,13 +39,13 @@ module internal PSQ =
 
    // Returns the number of items in the tree.  This is O(1).
    let lengthTree = function
-      | Leaf -> 0
+      | Lf -> 0
       | Nd(_, _, _, _, _,length) -> length
 
 
    // Returns a pennant containing the specified key and value.
    let inline singleton key value = 
-      Winner( key, value, Leaf, key)
+      Winner( key, value, Lf, key)
 
 
    // Returns a pennant containing the key and value of the specified pair.
@@ -85,8 +85,23 @@ module internal PSQ =
             Winner( key2, value2, (Nd(key1, value1, ltree1, max1, ltree2, lengthTrees + 1)), max2)
 
 
-//   let node key value left splitKey right =
-//      Nd(key, value, left, splitKey, right, 1 + lengthTree left + lengthTree right)
+   // Smart constructor for LoserTree nodes (keep length an implementation detail) 
+   let node key value leftTree splitKey rightTree = 
+      Nd(key, value, leftTree, splitKey, rightTree, 1 + lengthTree leftTree + lengthTree rightTree)
+
+
+   // Smart constructor for LoserTree nodes.
+   let leaf = Lf
+   
+
+   // Smart view for loser trees.
+   module TreeView = 
+      let (|Leaf|Node|) tree = 
+         match tree with
+         | Lf -> Leaf
+         | Nd(key, value,left, splitKey, right, length) ->
+            Node(key, value,left, splitKey, right)
+         
 //      
 //   let rec private balance tree = 
 //      let singleRight key value 
@@ -140,7 +155,7 @@ module internal PSQ =
          // Returns the second best entry from the tree, by effectively 'replaying' the tournament without the winner.
          let rec secondBest loserTree key  = 
             match loserTree, key with
-            | Leaf, _ -> Void
+            | Lf, _ -> Void
             | Nd(loserKey, loserValue, ltree, splitKey, rtree, _), m ->
                if loserKey <= splitKey then
                   merge (Winner(loserKey, loserValue, ltree, splitKey)) (secondBest rtree m)
@@ -161,7 +176,7 @@ module internal PSQ =
       let (|Empty|Singleton|Merged|) pennant = 
          match pennant with
          | Void -> Empty
-         | Winner(key, value, Leaf, _) -> Singleton(key, value)
+         | Winner(key, value, Lf, _) -> Singleton(key, value)
          | Winner(key, value, (Nd(lkey, lvalue, leftTree, splitKey, rightTree, _)), maxKey) ->         
             let pennant1, pennant2 = 
                if lkey <= splitKey then
@@ -240,9 +255,7 @@ module internal PSQ =
       | TournamentView.Singleton(k, v) -> [(k, v)] // Since we know v <= value
       | TournamentView.Merged(pennant1, pennant2) ->
          List.append (atMost value pennant1) (atMost value pennant2) 
-
-
-            
+                     
 
    // Iterator class for a pennant
    type PennantEnumerator<'K, 'V when 'K: comparison and 'V: comparison> ( pennant : Pennant<'K, 'V> ) =
