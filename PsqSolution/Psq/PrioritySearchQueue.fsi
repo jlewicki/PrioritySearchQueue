@@ -33,6 +33,10 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> =
     /// the key.
     member TryFind: key:'K -> option<'V>
 
+    /// O(lgN). Indexer that returns the value associated with the specified key. Throws an exception if the queue 
+    /// does not contain an entry with the key.
+    member Item : key:'K -> 'V with get
+
     /// O(lgN). Adds the specified key and value to this queue, replacing an existing entry if necessary.
     member Add: key:'K * value:'V -> PrioritySearchQueue<'K, 'V>
 
