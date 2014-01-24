@@ -20,6 +20,26 @@ module internal PSQ =
       | Nd of loserKey:'K * loserValue:'V * left:LoserTree<'K, 'V> * splitKey:'K * right:LoserTree<'K, 'V> * length:int 
 
 
+   // Returns the number of items in the tree.  This is O(1).
+   let lengthTree = function
+      | Lf -> 0
+      | Nd(_, _, _, _, _,length) -> length
+
+
+   // Smart tree constructors that hide length details.
+   let node key value leftTree splitKey rightTree = 
+      Nd(key, value, leftTree, splitKey, rightTree, 1 + lengthTree leftTree + lengthTree rightTree)      
+   let leaf = Lf
+
+
+   // Smart tree deconstructor.
+   let (|Leaf|Node|) tree = 
+      match tree with
+      | Lf -> Leaf
+      | Nd(key, value,left, splitKey, right, length) ->
+         Node(key, value,left, splitKey, right)
+
+
    // An empty pennant.
    let empty : Pennant<'K, 'V> = Void
 
@@ -35,12 +55,6 @@ module internal PSQ =
       | Void -> 0
       | Winner( _, _, Lf, _) -> 1
       | Winner( _, _, Nd(_, _, _, _, _,length), _) -> length + 1
-
-
-   // Returns the number of items in the tree.  This is O(1).
-   let lengthTree = function
-      | Lf -> 0
-      | Nd(_, _, _, _, _,length) -> length
 
 
    // Returns a pennant containing the specified key and value.
@@ -70,48 +84,24 @@ module internal PSQ =
       | Void -> invalidOp "empty pennant"
       | Winner( _, _, _, max) -> max
 
- 
-   // Merges two pennants and returns a new pennant, such that keys in the first tree are strictly smaller than keys 
-   // in the second tree. This is O(1).
-   let private merge pennant1 pennant2 = 
-      match pennant1, pennant2 with
-      | Void, _ -> pennant2
-      | _, Void -> pennant1
-      | Winner( key1, value1, ltree1, max1), Winner( key2, value2, ltree2, max2) ->
-         let lengthTrees = (lengthTree ltree1) + (lengthTree ltree2)
-         if value1 < value2 then
-            Winner( key1, value1, (Nd(key2, value2, ltree1, max1, ltree2, lengthTrees + 1)), max2)
-         else
-            Winner( key2, value2, (Nd(key1, value1, ltree1, max1, ltree2, lengthTrees + 1)), max2)
 
-      
-   // Sorry, too much to explain here.  See the paper for more details.
+   // Returns a tree node that balances the nodes in the left at right trees.
+   // See the paper for more details, and more particularly:
+   // Stephen Adams. Functional pearls: Efficient sets -- a balancing act
    let private balance key value left splitKey right = 
-      // Smart constructors (keep length an implementation detail) 
-      let node key value leftTree splitKey rightTree = 
-         Nd(key, value, leftTree, splitKey, rightTree, 1 + lengthTree leftTree + lengthTree rightTree)
-      let leaf = Lf
-    
-      // Smart destructor
-      let (|Leaf|Node|) tree = 
-         match tree with
-         | Lf -> Leaf
-         | Nd(key, value,left, splitKey, right, length) ->
-            Node(key, value,left, splitKey, right)
-    
       // Rotation functions
       let singleLeft key value left splitKey right = 
          match right with
-         | Leaf -> invalidOp "Shouldn't get here"
+         | Leaf -> leaf
          | Node(key2, value2, left2, splitKey2, right2) -> 
-            if key2 < splitKey2 && value <= value2 then 
+            if key2 <= splitKey2 && value <= value2 then 
                node key value (node key2 value2 left splitKey left2) splitKey2 right2
             else 
                node key2 value2 (node key value left splitKey left2) splitKey2 right2
       
       let singleRight key value left splitKey right = 
          match left with
-         | Leaf -> invalidOp "Shouldn't get here"
+         | Leaf -> leaf
          | Node(key2, value2, left2, splitKey2, right2) -> 
             if key2 > splitKey2 && value <= value2 then 
                node key value left2 splitKey2 (node key2 value2 right2 splitKey right)
@@ -120,20 +110,20 @@ module internal PSQ =
           
       let doubleLeft key value left splitKey right = 
          match right with
-         | Leaf -> invalidOp "Shouldn't get here"
+         | Leaf -> leaf
          | Node(key2, value2, left2, splitKey2, right2) -> 
             singleLeft key value left splitKey (singleRight key2 value2 left2 splitKey2 right2)
 
       let doubleRight key value left splitKey right = 
-         match right with
-         | Leaf -> invalidOp "Shouldn't get here"
+         match left with
+         | Leaf -> leaf
          | Node(key2, value2, left2, splitKey2, right2) -> 
             singleRight key value (singleLeft key2 value2 left2 splitKey2 right2) splitKey right
 
       // Balance functions
       let balanceLeft key value left splitKey right = 
          match right with
-         | Leaf -> invalidOp "Shouldn't get here"
+         | Leaf -> leaf
          | Node(key2, value2, left2, splitKey2, right2) ->
             if lengthTree left2 < lengthTree right2 then 
                singleLeft key value left splitKey right
@@ -142,38 +132,39 @@ module internal PSQ =
 
       let balanceRight key value left splitKey right = 
          match left with
-         | Leaf -> invalidOp "Shouldn't get here"
+         | Leaf -> leaf
          | Node(key2, value2, left2, splitKey2, right2) ->
             if lengthTree right2 < lengthTree left2 then 
                singleRight key value left splitKey right
             else 
                doubleRight key value left splitKey right 
-
+     
       let weightFactor = 4
       let lenl = lengthTree left
       let lenr = lengthTree right
-      let f = 
-         if lenl + lenr < 2 then node 
-         elif lenr > weightFactor * lenl then balanceLeft 
-         elif lenl > weightFactor * lenr then balanceRight
-         else node 
-      f key value left splitKey right 
-        
-//      
-//   let rec private balance tree = 
-//      let singleRight key value 
-//
-//
-//      let weightFactor = 4   
-//      match tree with
-//      | Leaf -> Leaf
-//      | Nd(k, v, left, splitKey, right, _) ->
-//         let llen = lengthTree left
-//         let rlen = lengthTree right
-//         if llen + rlen < 2  then node k v left splitKey right
-//         elif rlen > weightFactor * llen then 
-//      
 
+      if lenl + lenr < 2 then 
+         node key value left splitKey right
+      elif lenr > weightFactor * lenl then 
+         balanceLeft key value left splitKey right
+      elif lenl > weightFactor * lenr then 
+         balanceRight key value left splitKey right
+      else 
+         node key value left splitKey right
+
+
+   // Merges two pennants and returns a new pennant, such that keys in the first tree are strictly smaller than keys 
+   // in the second tree. This is O(1).
+   let private merge pennant1 pennant2 = 
+      match pennant1, pennant2 with
+      | Void, _ -> pennant2
+      | _, Void -> pennant1
+      | Winner( key1, value1, ltree1, max1), Winner( key2, value2, ltree2, max2) ->
+         if value1 < value2 then
+            Winner( key1, value1, (balance key2 value2 ltree1 max1 ltree2), max2)
+         else
+            Winner( key2, value2, (balance key1 value1 ltree1 max1 ltree2), max2)
+       
 
    // Returns a pennant containing values from the specified list, which *must* be sorted by key, in ascending order.
    // This is O(N).
@@ -212,8 +203,8 @@ module internal PSQ =
          // Returns the second best entry from the tree, by effectively 'replaying' the tournament without the winner.
          let rec secondBest loserTree key  = 
             match loserTree, key with
-            | Lf, _ -> Void
-            | Nd(loserKey, loserValue, ltree, splitKey, rtree, _), m ->
+            | Leaf, _ -> Void
+            | Node(loserKey, loserValue, ltree, splitKey, rtree), m ->
                if loserKey <= splitKey then
                   merge (Winner(loserKey, loserValue, ltree, splitKey)) (secondBest rtree m)
                else 
@@ -233,8 +224,8 @@ module internal PSQ =
       let (|Empty|Singleton|Merged|) pennant = 
          match pennant with
          | Void -> Empty
-         | Winner(key, value, Lf, _) -> Singleton(key, value)
-         | Winner(key, value, (Nd(lkey, lvalue, leftTree, splitKey, rightTree, _)), maxKey) ->         
+         | Winner(key, value, Leaf, _) -> Singleton(key, value)
+         | Winner(key, value, (Node(lkey, lvalue, leftTree, splitKey, rightTree)), maxKey) ->         
             let pennant1, pennant2 = 
                if lkey <= splitKey then
                   Winner(lkey, lvalue, leftTree, splitKey), Winner(key, value, rightTree, maxKey)
