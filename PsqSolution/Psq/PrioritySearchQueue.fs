@@ -7,6 +7,9 @@ open System.Collections.Generic
 // An implementation of a priority search queue as described in the paper "A Simple Implementation Technique for 
 // Priority Search Queues" by R. Hinze.
 module internal PSQ = 
+   // Set to true to assert that tree is always balanced.  
+   let private validateBalance = false
+
 
    // The priority search queue is defined in terms of a semi-heap strucure called a pennant.  This pennant is described
    // in relation to a tournament tree, hence the winner and loser nomenclature. Note that winnerKey and winnerValue
@@ -84,11 +87,27 @@ module internal PSQ =
       | Void -> invalidOp "empty pennant"
       | Winner( _, _, _, max) -> max
 
+  
+   // Returns the maximum depth of the tree.  This is O(N)
+   let rec private depth = function
+      | Leaf -> 1
+      | Node( _, _, left, _, right) -> 1 + max (depth left) (depth right) 
+
 
    // Returns a tree node that balances the nodes in the left at right trees.
    // See the paper for more details, and more particularly:
    // Stephen Adams. Functional pearls: Efficient sets -- a balancing act
    let private balance key value left splitKey right = 
+
+      let assertBalanced = function 
+      | Leaf -> leaf
+      | Node( _, _, left, _, right) as node ->
+         if validateBalance then 
+            let depthl = depth left
+            let depthr = depth right
+            assert ((abs (depthl - depthr)) <= 1)
+         node
+
       // Rotation functions
       let singleLeft key value left splitKey right = 
          match right with
@@ -138,19 +157,21 @@ module internal PSQ =
                singleRight key value left splitKey right
             else 
                doubleRight key value left splitKey right 
-     
+
       let weightFactor = 4
       let lenl = lengthTree left
       let lenr = lengthTree right
 
-      if lenl + lenr < 2 then 
-         node key value left splitKey right
-      elif lenr > weightFactor * lenl then 
-         balanceLeft key value left splitKey right
-      elif lenl > weightFactor * lenr then 
-         balanceRight key value left splitKey right
-      else 
-         node key value left splitKey right
+      let tree = 
+         if lenl + lenr < 2 then 
+            node key value left splitKey right
+         elif lenr > weightFactor * lenl then 
+            balanceLeft key value left splitKey right
+         elif lenl > weightFactor * lenr then 
+            balanceRight key value left splitKey right
+         else 
+            node key value left splitKey right
+      assertBalanced tree
 
 
    // Merges two pennants and returns a new pennant, such that keys in the first tree are strictly smaller than keys 
@@ -262,8 +283,7 @@ module internal PSQ =
 
 
    // Inserts the specified key and value into pennant, and returns an updated pennant.  If the pennant already 
-   // contains the key, the corresponding value is replaced.  This is O(lgN) on average. Note that because no 
-   // effort is made to balance loser trees, deeply lopsided trees amy be produced aftre multiple insertions.
+   // contains the key, the corresponding value is replaced.  This is O(lgN) on average. 
    let rec insert key value pennant = 
       match pennant with 
       | TournamentView.Empty -> 
