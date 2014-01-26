@@ -91,6 +91,9 @@ module PrioritySearchQueue =
    /// unchanged if there is no matching entry.
    val remove: key:'K -> PrioritySearchQueue<'K, 'V> -> PrioritySearchQueue<'K, 'V>
 
+   /// O(N). Returns a list of the keys in the specified queue, in ascending order.
+   val keys: PrioritySearchQueue<'K, 'V> -> list<'K>
+
    /// O(N) worst case. Returns a list of entries, in ascending order by key, that contain values from the specified 
    /// queue that are less than or equal to the specified value.
    val atMost: value:'V -> PrioritySearchQueue<'K, 'V> -> list<'K*'V>

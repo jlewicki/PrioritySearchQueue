@@ -313,6 +313,15 @@ module internal PSQ =
          else 
             merge pennant1 (delete key pennant2)
 
+   
+   // Returns an ordered list of the keys in the pennant.
+   let rec toOrderedList pennant =
+      match pennant with
+      | TournamentView.Empty -> []
+      | TournamentView.Singleton(k, v) -> [k]
+      | TournamentView.Merged(pennant1, pennant2) ->
+        List.append (toOrderedList pennant1) (toOrderedList pennant2)
+
 
    // Returns a list of entries, ordered by key, that contain values from the specified pennant that are less than or 
    // equal to the specified value.
@@ -383,6 +392,9 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal
    member this.Min = 
       PSQ.minBinding pennant
 
+   member this.Keys = 
+      PSQ.toOrderedList pennant
+   
    member this.PeekMin = 
       PSQ.peekMinBinding pennant
      
@@ -455,6 +467,9 @@ module PrioritySearchQueue =
 
    let remove (key:'K) (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.Remove key
+
+   let keys (queue:PrioritySearchQueue<'K, 'V>) = 
+      queue.Keys
 
    let atMost (value:'V) (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.AtMost value

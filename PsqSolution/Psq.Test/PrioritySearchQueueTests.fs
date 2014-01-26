@@ -195,4 +195,16 @@ type AtMost() =
       Assert.Equal( 0, entries.Length )
       
 
+type Keys() = 
+   [<Fact>]
+   member x.Should_Return_List_Of_Keys_In_Sorted_Order() =
+      let items = [("C", 3); ("F", 5); ("E", 1); ("D", 2); ("B", 2); ("A", 2);] 
+      let q = Q.ofSeq items
 
+      let keys = Q.keys q
+
+      Assert.Equal(6, keys.Length )
+      keys
+      |> List.zip ["A"; "B"; "C"; "D"; "E"; "F"] 
+      |> List.iter (fun (expKey, key) ->
+         Assert.Equal<string>(expKey, key))
