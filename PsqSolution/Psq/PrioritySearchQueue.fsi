@@ -95,3 +95,7 @@ module PrioritySearchQueue =
    /// queue that are less than or equal to the specified value.
    val atMost: value:'V -> PrioritySearchQueue<'K, 'V> -> list<'K*'V>
 
+   /// O(NlgN). Returns a new queue whose values are the results of applying the given function to each of the 
+   /// elements of the queue. The key passed to the function indicates the key of element being transformed. 
+   val map: f:('K -> 'V -> 'V2)  -> PrioritySearchQueue<'K, 'V> -> PrioritySearchQueue<'K, 'V2>
+

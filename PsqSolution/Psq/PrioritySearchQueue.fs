@@ -323,7 +323,7 @@ module internal PSQ =
       | TournamentView.Singleton(k, v) -> [(k, v)] // Since we know v <= value
       | TournamentView.Merged(pennant1, pennant2) ->
          List.append (atMost value pennant1) (atMost value pennant2) 
-                     
+
 
    // Iterator class for a pennant
    type PennantEnumerator<'K, 'V when 'K: comparison and 'V: comparison> ( pennant : Pennant<'K, 'V> ) =
@@ -458,4 +458,10 @@ module PrioritySearchQueue =
 
    let atMost (value:'V) (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.AtMost value
+
+   let map (f:'K -> 'V -> 'V2) (queue:PrioritySearchQueue<'K, 'V>) =
+      queue
+      |> toSeq
+      |> Seq.map (fun (k, v) -> k, (f k v))
+      |> ofSeq
       
