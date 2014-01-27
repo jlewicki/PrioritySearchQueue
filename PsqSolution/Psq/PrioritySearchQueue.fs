@@ -255,6 +255,13 @@ module internal PSQ =
             Merged(pennant1, pennant2)
 
 
+   // Returns the binding with the minimum value in the queue, and the pennant with that binding removed.
+   let removeMin pennant = 
+      match pennant with
+      | PriorityQueueView.Empty -> invalidOp "empty pennant"
+      | PriorityQueueView.Min(k, v, rest) -> k, v, rest
+
+
    // Returns the value associated with the specified key in the pennant, or None if there is no such entry.  This is
    // O(lgN) on average.  
    let rec lookup key pennant = 
@@ -415,6 +422,10 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal
    member this.Remove key =
       new PrioritySearchQueue<'K, 'V>( PSQ.delete key pennant  )
 
+   member this.RemoveMin() = 
+      let k, v, rest = PSQ.removeMin pennant
+      k, v, PrioritySearchQueue<'K, 'V>( rest )
+
    member this.AtMost value =
       PSQ.atMost value pennant 
 
@@ -445,6 +456,10 @@ module PrioritySearchQueue =
 
    let ofSeq (items:seq<'K*'V>) = 
       items |> Seq.sortBy fst |> ofOrderedSeq
+
+   let (|Empty|Min|) (queue:PrioritySearchQueue<'K, 'V>) =
+      if queue.IsEmpty then Empty
+      else Min(queue.RemoveMin())
 
    let min (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.Min
