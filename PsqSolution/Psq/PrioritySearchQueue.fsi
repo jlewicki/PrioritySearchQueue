@@ -23,7 +23,15 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> =
     member Min: 'K*'V
 
     /// O(1). Returns the entry with the minimum value in this queue. Returns None if the queue is empty.
-    member PeekMin: option<'K*'V>
+    member TryMin: option<'K*'V>
+
+    /// O(lgN). Returns the entry with the minimum value in this queue, and a queue with that entry removed.  Throws
+    /// an exception if the queue is empty.
+    member RemoveMin: 'K * 'V * PrioritySearchQueue<'K, 'V>
+
+    /// O(lgN). Returns the entry with the minimum value in this queue, and the queue with that entry removed. Returns
+    /// None if the queue is empty.
+    member TryRemoveMin: option<'K * 'V * PrioritySearchQueue<'K, 'V>>
 
     /// O(lgN). Returns the value associated with the specified key. Throws an exception if the queue does not contain 
     /// an entry with the key.
@@ -71,12 +79,17 @@ module PrioritySearchQueue =
    val min: queue:PrioritySearchQueue<'K, 'V> -> 'K*'V
 
    /// O(1). Returns the entry with the minimum value in the queue. Returns None if the queue is empty.
-   val peekMin: queue:PrioritySearchQueue<'K, 'V> -> option<'K*'V>
+   val tryMin: queue:PrioritySearchQueue<'K, 'V> -> option<'K*'V>
 
-   /// O(1): Destructive pattern for extracting minimum value.
-   val (|Empty|Min|) : queue:PrioritySearchQueue<'K, 'V> -> Choice<unit, ('K * 'V * PrioritySearchQueue<'K, 'V>)>
+   /// O(lgN). Returns the entry with the minimum value in the queue, and the queue with that entry removed. Throws
+   /// an exception if the queue is empty.
+   val removeMin: queue:PrioritySearchQueue<'K, 'V> -> 'K * 'V * PrioritySearchQueue<'K, 'V>
 
-   /// O(N). Returns a sequence that iterates the items in the queue.
+   /// O(lgN). Returns the entry with the minimum value in the queue, and the queue with that entry removed. Returns
+   /// None if the queue is empty.
+   val tryRemoveMin: queue:PrioritySearchQueue<'K, 'V> -> option<'K * 'V * PrioritySearchQueue<'K, 'V>>
+
+   /// O(1), iteration is O(NlgN). Returns a sequence that iterates the entries in the queue in order of increasing value.
    val toSeq: queue:PrioritySearchQueue<'K, 'V> -> seq<'K*'V>
 
    /// O(lgN). Returns the value associated with the specified key in the queue. Throws an exception if the queue does 

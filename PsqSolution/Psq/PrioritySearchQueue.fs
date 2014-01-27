@@ -255,11 +255,12 @@ module internal PSQ =
             Merged(pennant1, pennant2)
 
 
-   // Returns the binding with the minimum value in the queue, and the pennant with that binding removed.
+   // Returns the binding with the minimum value in the queue, and the pennant with that binding removed. This is
+   // O(lgN).  
    let removeMin pennant = 
       match pennant with
-      | PriorityQueueView.Empty -> invalidOp "empty pennant"
-      | PriorityQueueView.Min(k, v, rest) -> k, v, rest
+      | PriorityQueueView.Empty -> None
+      | PriorityQueueView.Min(k, v, rest) -> Some(k, v, rest)
 
 
    // Returns the value associated with the specified key in the pennant, or None if there is no such entry.  This is
@@ -341,7 +342,8 @@ module internal PSQ =
          List.append (atMost value pennant1) (atMost value pennant2) 
 
 
-   // Iterator class for a pennant
+   // Iterator class for a pennant that iterates bindings in order of increasing priority.  Complete iteration
+   // is O(NlgN).
    type PennantEnumerator<'K, 'V when 'K: comparison and 'V: comparison> ( pennant : Pennant<'K, 'V> ) =
       let notStarted() = 
          raise <| new InvalidOperationException("The enumerator has not been started by a call to MoveNext")
@@ -402,9 +404,19 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal
    member this.Keys = 
       PSQ.toOrderedList pennant
    
-   member this.PeekMin = 
+   member this.TryMin = 
       PSQ.peekMinBinding pennant
-     
+
+   member this.TryRemoveMin = 
+      match PSQ.removeMin pennant with
+      | Some(k, v, rest) -> Some(k, v, new PrioritySearchQueue<'K, 'V>( rest ))
+      | None -> None
+
+   member this.RemoveMin = 
+      match PSQ.removeMin pennant with
+      | Some(k, v, rest) -> k, v, new PrioritySearchQueue<'K, 'V>( rest )
+      | None -> invalidOp "The queue is empty" 
+
    member this.Find key = 
       match PSQ.lookup key pennant with
       | Some(value) -> value
@@ -421,10 +433,6 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal
 
    member this.Remove key =
       new PrioritySearchQueue<'K, 'V>( PSQ.delete key pennant  )
-
-   member this.RemoveMin() = 
-      let k, v, rest = PSQ.removeMin pennant
-      k, v, PrioritySearchQueue<'K, 'V>( rest )
 
    member this.AtMost value =
       PSQ.atMost value pennant 
@@ -459,13 +467,19 @@ module PrioritySearchQueue =
 
    let (|Empty|Min|) (queue:PrioritySearchQueue<'K, 'V>) =
       if queue.IsEmpty then Empty
-      else Min(queue.RemoveMin())
+      else Min(queue.RemoveMin)
 
    let min (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.Min
 
-   let peekMin (queue:PrioritySearchQueue<'K, 'V>) = 
-      queue.PeekMin
+   let tryMin (queue:PrioritySearchQueue<'K, 'V>) = 
+      queue.TryMin
+
+   let removeMin (queue:PrioritySearchQueue<'K, 'V>) = 
+      queue.RemoveMin
+
+   let tryRemoveMin (queue:PrioritySearchQueue<'K, 'V>) = 
+      queue.TryRemoveMin
 
    let toSeq (queue:PrioritySearchQueue<'K, 'V>) = 
       queue

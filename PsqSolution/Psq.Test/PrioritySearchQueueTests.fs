@@ -60,6 +60,27 @@ type OfSeq() =
          Q.empty |> Q.min |> ignore )
 
 
+type RemoveMin() = 
+   [<Fact>]
+   member x.Should_Return_Binding_With_Min_Value_And_Rest_Of_Queue() =
+      let psq = 
+         [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+         |> Q.ofOrderedSeq
+      let k, v, rest = Q.removeMin psq
+      Assert.Equal<string>( "C", k )
+      Assert.Equal( 1, v )
+      Assert.Equal( 4, rest.Length )
+      rest 
+      |> Q.toSeq
+      |> Seq.zip [("E", 2); ("D", 2); ("A", 3); ("B", 5)] 
+      |> Seq.iter Assert.Equal
+
+   [<Fact>]
+   member x.Should_Throw_For_Empty_Queue() = 
+      Assert.Throws<InvalidOperationException>( fun() ->
+         Q.empty |> Q.removeMin |> ignore )
+
+
 type ToSeq() = 
    [<Fact>]
    member x.Should_Return_Empty_Sequence_If_Queue_Is_Empty() = 
