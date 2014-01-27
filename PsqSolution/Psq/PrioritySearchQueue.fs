@@ -384,13 +384,30 @@ module internal PSQ =
       
 // Documention in signature file
 [<Sealed>]
-type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal( pennant: PSQ.Pennant<'K, 'V>  ) = 
+type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal( pennant: PSQ.Pennant<'K, 'V>  ) as this = 
 
    static let collectionIsReadOnly() = 
       new InvalidOperationException("The operation is not valid because the collection is read-only.")
    
    static let empty = 
       new PrioritySearchQueue<'K, 'V>( PSQ.empty )
+
+   let lazyHash = lazy (
+      let mutable hash = 1
+      for x in this do
+         hash <- 31 * hash + Unchecked.hash x
+      hash )
+
+   override this.GetHashCode() =
+      lazyHash.Value
+
+   override this.Equals(obj) =
+      match obj with
+      | :? PrioritySearchQueue<'K, 'V> as other -> 
+         if this.Length <> other.Length then false 
+         elif this.GetHashCode() <> other.GetHashCode() then false
+         else Seq.forall2 (Unchecked.equals) this other
+      | _ -> false
 
    member this.Length = 
       PSQ.length pennant
