@@ -122,3 +122,6 @@ module PrioritySearchQueue =
    /// elements of the queue. The key passed to the function indicates the key of element being transformed. 
    val map: f:('K -> 'V -> 'V2)  -> PrioritySearchQueue<'K, 'V> -> PrioritySearchQueue<'K, 'V2>
 
+   /// O(N). Applies the function to each entry in the queue, in order of ascending key value.
+   val iter: f:('K -> 'V -> unit)  -> PrioritySearchQueue<'K, 'V> -> unit
+

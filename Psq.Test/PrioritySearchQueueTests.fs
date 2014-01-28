@@ -247,3 +247,19 @@ type GetHashCode() =
       let q1 = Q.ofOrderedSeq items
       let q2 = Q.ofSeq items
       Assert.True( Object.Equals(q1.GetHashCode(), q2.GetHashCode()))
+
+
+type Iter() =
+   [<Fact>]
+   member x.Should_F_To_Entries_In_Ascending_Key_Order() = 
+      let items = [("C", 3); ("F", 5); ("E", 1); ("B", 2); ("D", 2); ("A", 2);] 
+      let q = Q.ofSeq items
+      let expected = ref [("A", 2); ("B", 2); ("C", 3); ("D", 2); ("E", 1); ("F", 5);] 
+      q
+      |> Q.iter (fun k v ->
+         match !expected with
+         | (expKey, expVal)::rest ->
+            Assert.Equal<string>(expKey, k)
+            Assert.Equal(expVal, v)
+            expected := rest
+         | _ -> invalidOp "" )

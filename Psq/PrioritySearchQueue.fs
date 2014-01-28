@@ -241,6 +241,7 @@ module internal PSQ =
    // - Singleton: A tree containing single entry
    // - Merged: The result of merging two pennants to determine a winner.  This is effectively the inverse of the
    // merge function.
+   // This is O(1).
    module TournamentView = 
       let (|Empty|Singleton|Merged|) pennant = 
          match pennant with
@@ -340,6 +341,15 @@ module internal PSQ =
       | TournamentView.Singleton(k, v) -> [(k, v)] // Since we know v <= value
       | TournamentView.Merged(pennant1, pennant2) ->
          List.append (atMost value pennant1) (atMost value pennant2) 
+
+   
+   // Applies the f to each entry in the pennant, in order of ascending key value. This is O(N).
+   let rec iter f pennant = 
+      match pennant with 
+      | TournamentView.Empty -> ()
+      | TournamentView.Singleton(k, v) -> f k v
+      | TournamentView.Merged(pennant1, pennant2) ->
+         iter f pennant1; iter f pennant2 
 
 
    // Iterator class for a pennant that iterates bindings in order of increasing priority.  Complete iteration
@@ -464,6 +474,9 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison>
    member this.AtMost value =
       PSQ.atMost value pennant 
 
+   member this.Iterate f = 
+      PSQ.iter f pennant
+
    static member Empty : PrioritySearchQueue<'K, 'V> = 
       empty
 
@@ -523,27 +536,32 @@ module PrioritySearchQueue =
       queue
       |> Seq.map( fun pair -> pair.Key, pair.Value )
 
-   let find (key:'K) (queue:PrioritySearchQueue<'K, 'V>) = 
+   let find key (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.Find key
 
-   let tryFind (key:'K) (queue:PrioritySearchQueue<'K, 'V>) = 
+   let tryFind key (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.TryFind key
       
-   let add (key:'K) (value:'V) (queue:PrioritySearchQueue<'K, 'V>) = 
+   let add key (value:'V) (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.Add(key, value)
 
-   let remove (key:'K) (queue:PrioritySearchQueue<'K, 'V>) = 
+   let remove key (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.Remove key
 
    let keys (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.Keys
 
-   let atMost (value:'V) (queue:PrioritySearchQueue<'K, 'V>) = 
+   let atMost value (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.AtMost value
 
-   let map (f:'K -> 'V -> 'V2) (queue:PrioritySearchQueue<'K, 'V>) =
+   let map f (queue:PrioritySearchQueue<'K, 'V>) =
       queue
       |> toSeq
       |> Seq.map (fun (k, v) -> k, (f k v))
       |> ofSeq
+
+   let iter f (queue:PrioritySearchQueue<'K, 'V>) =
+      queue.Iterate f
+
+  
       
