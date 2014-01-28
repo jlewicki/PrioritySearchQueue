@@ -60,6 +60,10 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> =
     /// are less than or equal to the specified value.
     member AtMost: value:'V -> list<'K*'V>
  
+    /// O(N). Returns a queue containing entries from this queue for which the specified predicate
+    /// function returns true.
+    member Filter: pred:('K -> 'V -> bool) -> PrioritySearchQueue<'K, 'V>
+
 
 /// Functional operators for <c>PrioritySearchQueue<_, _></c> type.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -124,4 +128,8 @@ module PrioritySearchQueue =
 
    /// O(N). Applies the function to each entry in the queue, in order of ascending key value.
    val iter: f:('K -> 'V -> unit)  -> PrioritySearchQueue<'K, 'V> -> unit
+
+   /// O(N). Returns a queue containing entries from the specified queue for which the specified predicate
+   /// function returns true.
+   val filter: pred:('K -> 'V -> bool)  -> PrioritySearchQueue<'K, 'V> -> PrioritySearchQueue<'K, 'V>
 

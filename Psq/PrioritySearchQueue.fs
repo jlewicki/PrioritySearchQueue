@@ -352,6 +352,16 @@ module internal PSQ =
          iter f pennant1; iter f pennant2 
 
 
+   // Returns a pennant containing only those entries for which the predicate function returns true.  This is O(N).
+   let rec filter f pennant =
+      match pennant with 
+      | TournamentView.Empty -> pennant
+      | TournamentView.Singleton(k, v) -> 
+         if f k v then pennant else empty
+      | TournamentView.Merged(pennant1, pennant2) -> 
+         merge (filter f pennant1) (filter f pennant2)
+
+
    // Iterator class for a pennant that iterates bindings in order of ascending keys.  Complete iteration
    // is O(N).
    type PennantEnumerator<'K, 'V when 'K: comparison and 'V: comparison> ( pennant : Pennant<'K, 'V> ) =
@@ -491,6 +501,9 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison>
    member this.Iterate f = 
       PSQ.iter f pennant
 
+   member this.Filter pred = 
+      new PrioritySearchQueue<'K, 'V>( PSQ.filter pred pennant )
+
    static member Empty : PrioritySearchQueue<'K, 'V> = 
       empty
 
@@ -578,6 +591,9 @@ module PrioritySearchQueue =
 
    let iter f (queue:PrioritySearchQueue<'K, 'V>) =
       queue.Iterate f
+   
+   let filter f (queue:PrioritySearchQueue<'K, 'V>) =
+      queue.Filter f
 
   
       
