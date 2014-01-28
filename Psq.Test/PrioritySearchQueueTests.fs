@@ -72,7 +72,7 @@ type RemoveMin() =
       Assert.Equal( 4, rest.Length )
       rest 
       |> Q.toSeq
-      |> Seq.zip [("E", 2); ("D", 2); ("A", 3); ("B", 5)] 
+      |> Seq.zip [("A", 3); ("B", 5); ("D", 2); ("E", 2)] 
       |> Seq.iter Assert.Equal
 
    [<Fact>]
@@ -87,14 +87,13 @@ type ToSeq() =
       Assert.True( Q.empty |> Q.toSeq |> Seq.isEmpty )
 
    [<Fact>]
-   member x.Should_Return_Sequence_Containing_Same_Elements_As_Queue() =
-      let items =  [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
-      let q = Q.ofOrderedSeq items
+   member x.Should_Return_Sequence_Containing_Same_Elements_As_Queue__In_Ascending_Key_Order() =
+      let items =  [("C", 3); ("B", 5); ("E", 1); ("D", 4); ("A", 2)] 
+      let q = Q.ofSeq items
       let seq = q |> Q.toSeq
       Assert.Equal( q.Length, seq |> Seq.length )
       seq
-      // Note that relative ordering of D/E is undefined.  This happens to be the ordering that is producded
-      |> Seq.zip [("C", 1); ("E", 2); ("D", 2); ("A", 3); ("B", 5)] 
+      |> Seq.zip [("A", 2); ("B", 5); ("C", 3); ("D", 4); ("E", 1)] 
       |> Seq.iter Assert.Equal
 
 

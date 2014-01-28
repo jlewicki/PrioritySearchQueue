@@ -352,42 +352,56 @@ module internal PSQ =
          iter f pennant1; iter f pennant2 
 
 
-   // Iterator class for a pennant that iterates bindings in order of increasing priority.  Complete iteration
-   // is O(NlgN).
+   // Iterator class for a pennant that iterates bindings in order of ascending keys.  Complete iteration
+   // is O(N).
    type PennantEnumerator<'K, 'V when 'K: comparison and 'V: comparison> ( pennant : Pennant<'K, 'V> ) =
       let notStarted() = 
          raise <| new InvalidOperationException("The enumerator has not been started by a call to MoveNext")
       let alreadyCompleted() = 
          raise <| new InvalidOperationException("The enumerator has already completed.")
 
-      let mutable currentPennant = pennant
+      // Always returns either [] or a list starting with Singleton. 
+      // The intrinsic F# Map iterates using this technique.
+      let rec collapseLHS pennantList =
+         match pennantList with 
+         | [] -> []
+         | TournamentView.Empty::rest -> collapseLHS rest
+         | TournamentView.Singleton(k, v)::_ -> pennantList
+         | TournamentView.Merged(pennant1, pennant2)::rest -> 
+            collapseLHS (pennant1 :: pennant2 :: rest)
+
+      // The first element in this list is always the current value of the enumerator.
+      let mutable pennantList  = collapseLHS [pennant]
       let mutable isStarted = false
 
       // Get the current item in the enumerator
       let current() =
          if isStarted then 
-            let k, v = minBinding currentPennant
-            new KeyValuePair<'K, 'V>(k, v)
+            match pennantList with
+            | TournamentView.Singleton(k, v) :: _ -> new KeyValuePair<_,_>(k,v)
+            | []  -> alreadyCompleted()
+            | _  -> failwith "Unexpected error error iterating PrioritySearchQueue."
          else notStarted()
       
       // Positions the enumerator at the next item in the collection
       let moveNext() =
          if isStarted then 
-            match currentPennant with 
-            | PriorityQueueView.Empty -> alreadyCompleted()
-            | PriorityQueueView.Min( _, _, rest) ->
-               currentPennant <- rest
-               not(currentPennant |> isEmpty)
+            match pennantList with
+            | TournamentView.Singleton(_, _)::rest -> 
+               pennantList <- collapseLHS rest;
+               not pennantList.IsEmpty
+            | [] -> false
+            | _ -> failwith "Unexpected error error iterating PrioritySearchQueue."
          else
              isStarted <- true;
-             not (currentPennant |> isEmpty)
+             not pennantList.IsEmpty
  
       interface IEnumerator<KeyValuePair<'K, 'V>> with
          member x.Current = current()
       interface IEnumerator with 
          member x.Current = box (current())
          member x.MoveNext() = moveNext()
-         member x.Reset() = currentPennant <- pennant
+         member x.Reset() = pennantList <- collapseLHS [pennant]
       interface IDisposable with 
          member x.Dispose() = () 
 
