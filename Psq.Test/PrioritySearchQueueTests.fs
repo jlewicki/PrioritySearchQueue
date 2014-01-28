@@ -263,3 +263,18 @@ type Iter() =
             Assert.Equal(expVal, v)
             expected := rest
          | _ -> invalidOp "" )
+
+
+type Contains() = 
+   [<Fact>]
+   member x.Should_Return_True_If_Entry_Exists() = 
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let q = Q.ofOrderedSeq items :> ICollection<KeyValuePair<string, int>>
+      Assert.True( q.Contains( new KeyValuePair<string, int>("A", 3)))
+
+   [<Fact>]
+   member x.Should_Return_False_If_Entry_Does_Not_Exist() = 
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let q = Q.ofOrderedSeq items :> ICollection<KeyValuePair<string, int>>
+      Assert.False( q.Contains( new KeyValuePair<string, int>("A", 4)))
+      Assert.False( q.Contains( new KeyValuePair<string, int>("F", 1)))

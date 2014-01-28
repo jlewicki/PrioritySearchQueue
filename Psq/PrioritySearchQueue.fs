@@ -495,7 +495,9 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison>
       member this.Remove item = raise <| collectionIsReadOnly()
       member this.Clear() = raise <| collectionIsReadOnly()
       member this.Contains item =  
-         (this.TryFind item.Key ).IsSome
+         match this.TryFind item.Key with
+         | Some(v) when v = item.Value -> true
+         | _ -> false
       member this.CopyTo( array, i ) =
          let j = ref i 
          Seq.iter (fun x -> array.[!j] <- x; j := !j + 1) this
