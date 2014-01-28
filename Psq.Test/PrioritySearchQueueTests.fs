@@ -72,7 +72,7 @@ type RemoveMin() =
       Assert.Equal( 4, rest.Length )
       rest 
       |> Q.toSeq
-      |> Seq.zip [("E", 2); ("D", 2); ("A", 3); ("B", 5)] 
+      |> Seq.zip [("A", 3); ("B", 5); ("D", 2); ("E", 2)] 
       |> Seq.iter Assert.Equal
 
    [<Fact>]
@@ -87,14 +87,13 @@ type ToSeq() =
       Assert.True( Q.empty |> Q.toSeq |> Seq.isEmpty )
 
    [<Fact>]
-   member x.Should_Return_Sequence_Containing_Same_Elements_As_Queue() =
-      let items =  [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
-      let q = Q.ofOrderedSeq items
+   member x.Should_Return_Sequence_Containing_Same_Elements_As_Queue__In_Ascending_Key_Order() =
+      let items =  [("C", 3); ("B", 5); ("E", 1); ("D", 4); ("A", 2)] 
+      let q = Q.ofSeq items
       let seq = q |> Q.toSeq
       Assert.Equal( q.Length, seq |> Seq.length )
       seq
-      // Note that relative ordering of D/E is undefined.  This happens to be the ordering that is producded
-      |> Seq.zip [("C", 1); ("E", 2); ("D", 2); ("A", 3); ("B", 5)] 
+      |> Seq.zip [("A", 2); ("B", 5); ("C", 3); ("D", 4); ("E", 1)] 
       |> Seq.iter Assert.Equal
 
 
@@ -229,3 +228,52 @@ type Keys() =
       |> List.zip ["A"; "B"; "C"; "D"; "E"; "F"] 
       |> List.iter (fun (expKey, key) ->
          Assert.Equal<string>(expKey, key))
+
+
+type Equals() = 
+   [<Fact>]
+   member x.Should_Use_Value_Equality_Semantics() =
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let q1 = Q.ofOrderedSeq items
+      let q2 = Q.ofSeq items
+      Assert.True( Object.Equals(q1, q2))
+
+
+type GetHashCode() = 
+   [<Fact>]
+   member x.Should_Use_Value_Equality_Semantics() =
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let q1 = Q.ofOrderedSeq items
+      let q2 = Q.ofSeq items
+      Assert.True( Object.Equals(q1.GetHashCode(), q2.GetHashCode()))
+
+
+type Iter() =
+   [<Fact>]
+   member x.Should_F_To_Entries_In_Ascending_Key_Order() = 
+      let items = [("C", 3); ("F", 5); ("E", 1); ("B", 2); ("D", 2); ("A", 2);] 
+      let q = Q.ofSeq items
+      let expected = ref [("A", 2); ("B", 2); ("C", 3); ("D", 2); ("E", 1); ("F", 5);] 
+      q
+      |> Q.iter (fun k v ->
+         match !expected with
+         | (expKey, expVal)::rest ->
+            Assert.Equal<string>(expKey, k)
+            Assert.Equal(expVal, v)
+            expected := rest
+         | _ -> invalidOp "" )
+
+
+type Contains() = 
+   [<Fact>]
+   member x.Should_Return_True_If_Entry_Exists() = 
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let q = Q.ofOrderedSeq items :> ICollection<KeyValuePair<string, int>>
+      Assert.True( q.Contains( new KeyValuePair<string, int>("A", 3)))
+
+   [<Fact>]
+   member x.Should_Return_False_If_Entry_Does_Not_Exist() = 
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let q = Q.ofOrderedSeq items :> ICollection<KeyValuePair<string, int>>
+      Assert.False( q.Contains( new KeyValuePair<string, int>("A", 4)))
+      Assert.False( q.Contains( new KeyValuePair<string, int>("F", 1)))

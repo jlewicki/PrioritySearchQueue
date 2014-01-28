@@ -241,6 +241,7 @@ module internal PSQ =
    // - Singleton: A tree containing single entry
    // - Merged: The result of merging two pennants to determine a winner.  This is effectively the inverse of the
    // merge function.
+   // This is O(1).
    module TournamentView = 
       let (|Empty|Singleton|Merged|) pennant = 
          match pennant with
@@ -341,50 +342,74 @@ module internal PSQ =
       | TournamentView.Merged(pennant1, pennant2) ->
          List.append (atMost value pennant1) (atMost value pennant2) 
 
+   
+   // Applies the f to each entry in the pennant, in order of ascending key value. This is O(N).
+   let rec iter f pennant = 
+      match pennant with 
+      | TournamentView.Empty -> ()
+      | TournamentView.Singleton(k, v) -> f k v
+      | TournamentView.Merged(pennant1, pennant2) ->
+         iter f pennant1; iter f pennant2 
 
-   // Iterator class for a pennant that iterates bindings in order of increasing priority.  Complete iteration
-   // is O(NlgN).
+
+   // Iterator class for a pennant that iterates bindings in order of ascending keys.  Complete iteration
+   // is O(N).
    type PennantEnumerator<'K, 'V when 'K: comparison and 'V: comparison> ( pennant : Pennant<'K, 'V> ) =
       let notStarted() = 
          raise <| new InvalidOperationException("The enumerator has not been started by a call to MoveNext")
       let alreadyCompleted() = 
          raise <| new InvalidOperationException("The enumerator has already completed.")
 
-      let mutable currentPennant = pennant
+      // Always returns either [] or a list starting with Singleton. 
+      // The intrinsic F# Map iterates using this technique.
+      let rec collapseLHS pennantList =
+         match pennantList with 
+         | [] -> []
+         | TournamentView.Empty::rest -> collapseLHS rest
+         | TournamentView.Singleton(k, v)::_ -> pennantList
+         | TournamentView.Merged(pennant1, pennant2)::rest -> 
+            collapseLHS (pennant1 :: pennant2 :: rest)
+
+      // The first element in this list is always the current value of the enumerator.
+      let mutable pennantList  = collapseLHS [pennant]
       let mutable isStarted = false
 
       // Get the current item in the enumerator
       let current() =
          if isStarted then 
-            let k, v = minBinding currentPennant
-            new KeyValuePair<'K, 'V>(k, v)
+            match pennantList with
+            | TournamentView.Singleton(k, v) :: _ -> new KeyValuePair<_,_>(k,v)
+            | []  -> alreadyCompleted()
+            | _  -> failwith "Unexpected error error iterating PrioritySearchQueue."
          else notStarted()
       
       // Positions the enumerator at the next item in the collection
       let moveNext() =
          if isStarted then 
-            match currentPennant with 
-            | PriorityQueueView.Empty -> alreadyCompleted()
-            | PriorityQueueView.Min( _, _, rest) ->
-               currentPennant <- rest
-               not(currentPennant |> isEmpty)
+            match pennantList with
+            | TournamentView.Singleton(_, _)::rest -> 
+               pennantList <- collapseLHS rest;
+               not pennantList.IsEmpty
+            | [] -> false
+            | _ -> failwith "Unexpected error error iterating PrioritySearchQueue."
          else
              isStarted <- true;
-             not (currentPennant |> isEmpty)
+             not pennantList.IsEmpty
  
       interface IEnumerator<KeyValuePair<'K, 'V>> with
          member x.Current = current()
       interface IEnumerator with 
          member x.Current = box (current())
          member x.MoveNext() = moveNext()
-         member x.Reset() = currentPennant <- pennant
+         member x.Reset() = pennantList <- collapseLHS [pennant]
       interface IDisposable with 
          member x.Dispose() = () 
 
       
 // Documention in signature file
 [<Sealed>]
-type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal( pennant: PSQ.Pennant<'K, 'V>  ) as this = 
+type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> 
+   internal( pennant: PSQ.Pennant<'K, 'V>  ) as this = 
 
    static let collectionIsReadOnly() = 
       new InvalidOperationException("The operation is not valid because the collection is read-only.")
@@ -392,22 +417,31 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal
    static let empty = 
       new PrioritySearchQueue<'K, 'V>( PSQ.empty )
 
-   let lazyHash = lazy (
+   let lazyHashCode = lazy (
       let mutable hash = 1
       for x in this do
          hash <- 31 * hash + Unchecked.hash x
       hash )
 
-   override this.GetHashCode() =
-      lazyHash.Value
+   new (items: seq<KeyValuePair<'K, 'V>>) = 
+      let pennant = 
+         items 
+         |> Seq.map (fun pair -> pair.Key, pair.Value ) 
+         |> List.ofSeq 
+         |> List.sortBy fst 
+         |> PSQ.fromOrderedList
+      new PrioritySearchQueue<'K, 'V>( pennant )
 
-   override this.Equals(obj) =
-      match obj with
-      | :? PrioritySearchQueue<'K, 'V> as other -> 
-         if this.Length <> other.Length then false 
-         elif this.GetHashCode() <> other.GetHashCode() then false
-         else Seq.forall2 (Unchecked.equals) this other
-      | _ -> false
+   override this.GetHashCode() = 
+      lazyHashCode.Value 
+
+   override this.Equals obj =
+       match obj with
+        | :? PrioritySearchQueue<'K, 'V> as other -> 
+            if this.Length <> other.Length then false 
+            elif this.GetHashCode() <> other.GetHashCode() then false
+            else Seq.forall2 (Unchecked.equals) this other
+        | _ -> false
 
    member this.Length = 
       PSQ.length pennant
@@ -454,6 +488,9 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal
    member this.AtMost value =
       PSQ.atMost value pennant 
 
+   member this.Iterate f = 
+      PSQ.iter f pennant
+
    static member Empty : PrioritySearchQueue<'K, 'V> = 
       empty
 
@@ -465,6 +502,19 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> internal
       member x.GetEnumerator() = 
          new PSQ.PennantEnumerator<'K, 'V>( pennant ) :> IEnumerator<KeyValuePair<'K, 'V>>
 
+   interface ICollection<KeyValuePair<'K, 'V>> with
+      member this.Count = this.Length
+      member this.IsReadOnly = true
+      member this.Add item = raise <| collectionIsReadOnly()
+      member this.Remove item = raise <| collectionIsReadOnly()
+      member this.Clear() = raise <| collectionIsReadOnly()
+      member this.Contains item =  
+         match this.TryFind item.Key with
+         | Some(v) when v = item.Value -> true
+         | _ -> false
+      member this.CopyTo( array, i ) =
+         let j = ref i 
+         Seq.iter (fun x -> array.[!j] <- x; j := !j + 1) this
 
 // Documention in signature file
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -502,27 +552,32 @@ module PrioritySearchQueue =
       queue
       |> Seq.map( fun pair -> pair.Key, pair.Value )
 
-   let find (key:'K) (queue:PrioritySearchQueue<'K, 'V>) = 
+   let find key (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.Find key
 
-   let tryFind (key:'K) (queue:PrioritySearchQueue<'K, 'V>) = 
+   let tryFind key (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.TryFind key
       
-   let add (key:'K) (value:'V) (queue:PrioritySearchQueue<'K, 'V>) = 
+   let add key (value:'V) (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.Add(key, value)
 
-   let remove (key:'K) (queue:PrioritySearchQueue<'K, 'V>) = 
+   let remove key (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.Remove key
 
    let keys (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.Keys
 
-   let atMost (value:'V) (queue:PrioritySearchQueue<'K, 'V>) = 
+   let atMost value (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.AtMost value
 
-   let map (f:'K -> 'V -> 'V2) (queue:PrioritySearchQueue<'K, 'V>) =
+   let map f (queue:PrioritySearchQueue<'K, 'V>) =
       queue
       |> toSeq
       |> Seq.map (fun (k, v) -> k, (f k v))
       |> ofSeq
+
+   let iter f (queue:PrioritySearchQueue<'K, 'V>) =
+      queue.Iterate f
+
+  
       

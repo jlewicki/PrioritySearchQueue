@@ -12,6 +12,10 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> =
     
     interface IEnumerable
     interface IEnumerable<KeyValuePair<'K, 'V>>
+    interface ICollection<KeyValuePair<'K, 'V>>
+
+    /// O(N^2), O(NlgN) on average. Creates a new queue containing the entries in the specified collection.
+    new: items:seq<KeyValuePair<'K, 'V>> -> PrioritySearchQueue<'K, 'V>
 
     /// O(1). Returns the number if items in this queue.
     member Length: int
@@ -117,4 +121,7 @@ module PrioritySearchQueue =
    /// O(NlgN). Returns a new queue whose values are the results of applying the given function to each of the 
    /// elements of the queue. The key passed to the function indicates the key of element being transformed. 
    val map: f:('K -> 'V -> 'V2)  -> PrioritySearchQueue<'K, 'V> -> PrioritySearchQueue<'K, 'V2>
+
+   /// O(N). Applies the function to each entry in the queue, in order of ascending key value.
+   val iter: f:('K -> 'V -> unit)  -> PrioritySearchQueue<'K, 'V> -> unit
 
