@@ -13,6 +13,9 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> =
     interface IEnumerable
     interface IEnumerable<KeyValuePair<'K, 'V>>
 
+    /// O(N^2), O(NlgN) on average. Creates a new queue containing the entries in the specified collection.
+    new: items:seq<KeyValuePair<'K, 'V>> -> PrioritySearchQueue<'K, 'V>
+
     /// O(1). Returns the number if items in this queue.
     member Length: int
 

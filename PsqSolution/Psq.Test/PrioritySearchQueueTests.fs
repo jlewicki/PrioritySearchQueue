@@ -229,3 +229,21 @@ type Keys() =
       |> List.zip ["A"; "B"; "C"; "D"; "E"; "F"] 
       |> List.iter (fun (expKey, key) ->
          Assert.Equal<string>(expKey, key))
+
+
+type Equals() = 
+   [<Fact>]
+   member x.Should_Use_Value_Equality_Semantics() =
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let q1 = Q.ofOrderedSeq items
+      let q2 = Q.ofSeq items
+      Assert.True( Object.Equals(q1, q2))
+
+
+type GetHashCode() = 
+   [<Fact>]
+   member x.Should_Use_Value_Equality_Semantics() =
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let q1 = Q.ofOrderedSeq items
+      let q2 = Q.ofSeq items
+      Assert.True( Object.Equals(q1.GetHashCode(), q2.GetHashCode()))
