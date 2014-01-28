@@ -475,6 +475,17 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison>
       member x.GetEnumerator() = 
          new PSQ.PennantEnumerator<'K, 'V>( pennant ) :> IEnumerator<KeyValuePair<'K, 'V>>
 
+   interface ICollection<KeyValuePair<'K, 'V>> with
+      member this.Count = this.Length
+      member this.IsReadOnly = true
+      member this.Add item = raise <| collectionIsReadOnly()
+      member this.Remove item = raise <| collectionIsReadOnly()
+      member this.Clear() = raise <| collectionIsReadOnly()
+      member this.Contains item =  
+         (this.TryFind item.Key ).IsSome
+      member this.CopyTo( array, i ) =
+         let j = ref i 
+         Seq.iter (fun x -> array.[!j] <- x; j := !j + 1) this
 
 // Documention in signature file
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
