@@ -64,6 +64,12 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison> =
     /// function returns true.
     member Filter: pred:('K -> 'V -> bool) -> PrioritySearchQueue<'K, 'V>
 
+    /// O(N). Applies a function to each entry in this queue, threading an accumulator argument through the computation. 
+    /// This function takes the second argument, and applies the function to it and the first entry in this queue (in 
+    /// order of ascending keys). Then, it passes this result into the function along with the second element, and so 
+    /// on.
+    member Fold: f:('A -> 'K -> 'V -> 'A) -> 'A -> 'A
+
 
 /// Functional operators for <c>PrioritySearchQueue<_, _></c> type.
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
@@ -75,6 +81,9 @@ module PrioritySearchQueue =
 
    /// O(1). Returns a value indicating if the queue is empty.
    val isEmpty: queue:PrioritySearchQueue<'K, 'V> -> bool
+
+   /// O(1). Returns the number of entries in the queue.
+   val length: queue:PrioritySearchQueue<'K, 'V> -> int
 
    /// O(N^2), O(NlgN) on average.  Returns a new queue containing the items in the specified sequence
    val ofSeq: items:seq<'K*'V> -> PrioritySearchQueue<'K, 'V>
@@ -124,12 +133,18 @@ module PrioritySearchQueue =
 
    /// O(NlgN). Returns a new queue whose values are the results of applying the given function to each of the 
    /// elements of the queue. The key passed to the function indicates the key of element being transformed. 
-   val map: f:('K -> 'V -> 'V2)  -> PrioritySearchQueue<'K, 'V> -> PrioritySearchQueue<'K, 'V2>
+   val map: f:('K -> 'V -> 'V2) -> PrioritySearchQueue<'K, 'V> -> PrioritySearchQueue<'K, 'V2>
 
    /// O(N). Applies the function to each entry in the queue, in order of ascending key value.
-   val iter: f:('K -> 'V -> unit)  -> PrioritySearchQueue<'K, 'V> -> unit
+   val iter: f:('K -> 'V -> unit) -> PrioritySearchQueue<'K, 'V> -> unit
 
    /// O(N). Returns a queue containing entries from the specified queue for which the specified predicate
    /// function returns true.
-   val filter: pred:('K -> 'V -> bool)  -> PrioritySearchQueue<'K, 'V> -> PrioritySearchQueue<'K, 'V>
+   val filter: pred:('K -> 'V -> bool) -> PrioritySearchQueue<'K, 'V> -> PrioritySearchQueue<'K, 'V>
+
+   /// O(N). Applies a function to each entry in the queue, threading an accumulator argument through the computation. 
+   /// This function takes the second argument, and applies the function to it and the first entry in the queue (in 
+   /// order of ascending keys). Then, it passes this result into the function along with the second element, and so 
+   /// on.
+   val fold: f:('A -> 'K -> 'V -> 'A) -> 'A -> PrioritySearchQueue<'K, 'V> -> 'A
 

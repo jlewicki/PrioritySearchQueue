@@ -277,3 +277,34 @@ type Contains() =
       let q = Q.ofOrderedSeq items :> ICollection<KeyValuePair<string, int>>
       Assert.False( q.Contains( new KeyValuePair<string, int>("A", 4)))
       Assert.False( q.Contains( new KeyValuePair<string, int>("F", 1)))
+
+
+type Fold() = 
+   [<Fact>]
+   member x.Should_Produce_Final_State() = 
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let sum = items |> Q.ofSeq |> Q.fold (fun sum k v -> sum + v ) 0
+      Assert.Equal( 13, sum )
+
+   [<Fact>]
+   member x.Should_Return_Initial_State_For_Empty_Queue() = 
+      let sum = Q.empty |> Q.fold (fun sum k v -> sum + v ) 10
+      Assert.Equal( 10, sum )
+
+   [<Fact>]
+   member x.Should_Fold_Front_To_Back_In_Ascending_Key_Order() = 
+      let items = [("B", 3); ("A", 5); ("C", 1); ("D", 2); ("E", 2)] 
+      let q = items |> Q.ofSeq
+      let intermediates = ref []
+      let sum = 
+         q
+         |> Q.fold (fun sum k v -> 
+            intermediates := !intermediates @ [sum]
+            sum + v ) 0
+      let expectedIntermediates = [0; 5; 8; 9; 11;]
+      expectedIntermediates
+      |> List.zip !intermediates
+      |> List.iter( fun(expected, actual) -> 
+         Assert.Equal( expected, actual ) )
+
+

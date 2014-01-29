@@ -295,8 +295,7 @@ module internal PSQ =
    // contains the key, the corresponding value is replaced.  This is O(lgN) on average. 
    let rec insert key value pennant = 
       match pennant with 
-      | TournamentView.Empty -> 
-         singleton key value
+      | TournamentView.Empty -> singleton key value
       | TournamentView.Singleton(k, _) -> 
          if key < k then merge (singleton key value) pennant
          elif key = k then singleton key value  // Update existing value
@@ -312,10 +311,8 @@ module internal PSQ =
    // if an item was removed.
    let rec delete key pennant = 
       match pennant with 
-      | TournamentView.Empty -> 
-         pennant
-      | TournamentView.Singleton(k, _) -> 
-        if key = k then empty else pennant
+      | TournamentView.Empty -> pennant
+      | TournamentView.Singleton(k, _) -> if key = k then empty else pennant
       | TournamentView.Merged(pennant1, pennant2) -> 
          if key <= maxKey pennant1 then 
             merge (delete key pennant1) pennant2
@@ -356,10 +353,27 @@ module internal PSQ =
    let rec filter f pennant =
       match pennant with 
       | TournamentView.Empty -> pennant
-      | TournamentView.Singleton(k, v) -> 
-         if f k v then pennant else empty
+      | TournamentView.Singleton(k, v) -> if f k v then pennant else empty
       | TournamentView.Merged(pennant1, pennant2) -> 
          merge (filter f pennant1) (filter f pennant2)
+
+
+   let rec fold (f:OptimizedClosures.FSharpFunc<_,_,_,_>) state pennant  = 
+      match pennant with 
+      | TournamentView.Empty -> state
+      | TournamentView.Singleton(k, v) -> f.Invoke(state, k, v)
+      | TournamentView.Merged(pennant1, pennant2) -> 
+         let state = fold f state pennant1
+         fold f state pennant2
+
+
+   let rec foldBack (f:OptimizedClosures.FSharpFunc<_,_,_,_>) pennant state = 
+      match pennant with 
+      | TournamentView.Empty -> state
+      | TournamentView.Singleton(k, v) -> f.Invoke(k, v, state)
+      | TournamentView.Merged(pennant1, pennant2) -> 
+         let state = foldBack f pennant1 state
+         foldBack f pennant2 state
 
 
    // Iterator class for a pennant that iterates bindings in order of ascending keys.  Complete iteration
@@ -504,6 +518,11 @@ type PrioritySearchQueue<'K, 'V when 'K: comparison and 'V: comparison>
    member this.Filter pred = 
       new PrioritySearchQueue<'K, 'V>( PSQ.filter pred pennant )
 
+   member this.Fold f state =
+      // F# Map uses OptimizedClosure while folding, so let's use it here too.
+      let f = OptimizedClosures.FSharpFunc<_,_,_,_>.Adapt(f)
+      PSQ.fold f state pennant
+
    static member Empty : PrioritySearchQueue<'K, 'V> = 
       empty
 
@@ -538,6 +557,9 @@ module PrioritySearchQueue =
 
    let isEmpty (queue:PrioritySearchQueue<'K, 'V>) = 
       queue.IsEmpty
+
+   let length (queue:PrioritySearchQueue<'K, 'V>) = 
+      queue.Length
 
    let ofOrderedSeq (items:seq<'K*'V>) = 
       new PrioritySearchQueue<'K, 'V>( PSQ.fromOrderedList (List.ofSeq items) )
@@ -594,6 +616,9 @@ module PrioritySearchQueue =
    
    let filter f (queue:PrioritySearchQueue<'K, 'V>) =
       queue.Filter f
+
+   let fold f state (queue:PrioritySearchQueue<'K, 'V>) = 
+      queue.Fold f state
 
   
       
