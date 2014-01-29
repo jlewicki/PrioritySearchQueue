@@ -308,3 +308,38 @@ type Fold() =
          Assert.Equal( expected, actual ) )
 
 
+type Filter() = 
+   [<Fact>]
+   member x.Should_Return_List_Containing_Items_For_Which_Predicate_Is_True() =
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 4); ("E", 2)] 
+      let pred k v = v % 2 = 0
+      let filtered = Q.ofSeq items |> Q.filter pred
+      Assert.Equal( 2, filtered |> Q.length )
+      Assert.Equal( 2, snd filtered.Min )
+
+      filtered
+      |> Q.toSeq
+      |> Seq.zip [("D", 4); ("E", 2)] 
+      |> Seq.iter (fun ((expKey,expVal), (key, value)) ->
+         Assert.Equal<string>(expKey, key)
+         Assert.Equal(expVal, value))
+   
+   [<Fact>]
+   member x.Should_Return_Empty_List_If_No_Items_Match_Predicate() =
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 4); ("E", 2)] 
+      let pred k v = k = "X"
+      let filtered = Q.ofSeq items |> Q.filter pred
+      Assert.True( filtered.IsEmpty )
+
+   [<Fact>]
+   member x.Predicate_Should_Be_Called_Once_For_Each_Item_In_List() =
+      let calledFor = ref Set.empty
+      // Predicate that remembers what it was called with, and tests if number is even
+      let pred k v = 
+         calledFor := !calledFor |> Set.add (k,v)
+         v % 2 = 0 
+
+      let items = [("A", 3); ("B", 5); ("C", 1); ("D", 4); ("E", 2)] 
+      let filtered = Q.ofSeq items |> Q.filter pred
+      Assert.True( (!calledFor |> Set.count) = items.Length ) 
+      Assert.True( items |> List.forall( fun (k,v) -> !calledFor |> Set.contains (k,v) ) )
